@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.studyroom</groupId>
+        <artifactId>studyroom-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>studyroom-entity</artifactId>
+    <name>studyroom-entity</name>
+    <description>实体模块：MyBatis-Plus 实体类（user/store/seat/order/...，随各业务模块逐步补充）与 DTO/VO</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.studyroom</groupId>
+            <artifactId>studyroom-common</artifactId>
+        </dependency>
+        <!-- MyBatis-Plus 注解（@TableName/@TableId/@TableLogic 等） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-annotation</artifactId>
+        </dependency>
+        <!-- 参数校验注解（DTO 上的 JSR-303 注解） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- Swagger 注解（Knife4j 文档展示 DTO/VO 字段说明） -->
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

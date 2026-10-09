@@ -1,0 +1,13 @@
+{
+  "name": "studyroom-uniapp",
+  "version": "1.0.0",
+  "description": "无人自习室管理系统 - 用户端小程序（uni-app + Vue3 + Pinia）",
+  "private": true,
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "pinia": "^2.1.7"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

@@ -1,0 +1,65 @@
+# ============================================================
+# 开发环境配置
+# ============================================================
+spring:
+  # ---------------- MySQL 8（Druid 连接池） ----------------
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/studyroom?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: "1234"
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      # 连接等待超时（毫秒）
+      max-wait: 60000
+      # 检测配置
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      # Druid SQL 监控（可观测性需求）
+      filters: stat,wall
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.css,*.gif,*.jpg,*.png,/druid/*"
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+        allow: 127.0.0.1
+
+  # ---------------- Redis 6 ----------------
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    database: 0
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 2
+        max-wait: 3000
+
+  # ---------------- 邮件兜底（FR-UC-004 验证码 / FR-UC-046 关键节点通知） ----------------
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: your-mail@qq.com
+    password: your-smtp-authorization-code
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+logging:
+  level:
+    com.studyroom: debug

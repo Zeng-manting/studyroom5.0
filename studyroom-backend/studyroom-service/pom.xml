@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.studyroom</groupId>
+        <artifactId>studyroom-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>studyroom-service</artifactId>
+    <name>studyroom-service</name>
+    <description>业务层模块：核心业务逻辑（原子锁座、五重校验、阶梯退款、信用限制、延迟任务等）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.studyroom</groupId>
+            <artifactId>studyroom-mapper</artifactId>
+        </dependency>
+        <!-- Redis：缓存、座位锁定、签到码、暂停计时器 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- Redisson：分布式锁(FR-UC-018)、RRateLimiter(FR-SY-001)、延迟队列(FR-SY-002) -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- JWT（FR-UC-005 / FR-AD-001） -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+        </dependency>
+        <!-- Hutool（AES/HMAC 加密、日期处理等） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+        <!-- WxJava 4.5.0：微信小程序（FR-UC-001 code2Session 静默登录；FR-UC-044 订阅消息） -->
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>weixin-java-miniapp</artifactId>
+        </dependency>
+        <!-- Spring Mail：SMTP 邮箱验证码（FR-UC-004）、关键节点邮件兜底（FR-UC-046） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!-- Servlet API（WebUtils.currentRequest 返回 HttpServletRequest，签到留痕取 UA/IP，FR-UC-030） -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

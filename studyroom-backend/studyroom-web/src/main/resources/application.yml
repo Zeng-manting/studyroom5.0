@@ -1,0 +1,104 @@
+# ============================================================
+# 无人自习室管理系统 - 主配置（公共部分，环境差异见 application-{profile}.yml）
+# 技术栈：Spring Boot 2.7.18 + JDK 11 + MyBatis-Plus 3.5.5
+#         + Spring Security + JWT + Redisson 3.23.4 + MySQL 8 + Redis 6
+# ============================================================
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: studyroom-server
+  profiles:
+    active: dev
+  # Spring Boot 2.6+ 默认使用 PathPatternParser，Springfox(Knife4j) 不兼容，需回退为 AntPathMatcher
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # Jackson 全局日期格式
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  # 文件上传限制（评价图片最多 6 张，FR-UC-039）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  # SMTP 邮件（FR-UC-004 邮箱验证码 / FR-UC-046 邮件兜底）
+  # 生产环境通过环境变量注入：MAIL_HOST / MAIL_PORT / MAIL_USERNAME / MAIL_PASSWORD
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:noreply@studyroom.local}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# ---------------- MyBatis-Plus ----------------
+mybatis-plus:
+  # Mapper XML 位置（studyroom-mapper 模块 resources/mapper/）
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.studyroom.entity
+  global-config:
+    banner: false
+    db-config:
+      # 主键：雪花算法 assign_id（后端生成，避免自增暴露业务量）
+      id-type: assign_id
+      # 逻辑删除：deleted 0-未删 1-已删
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# ---------------- Knife4j 接口文档 ----------------
+# 可观测性要求：生产环境不对公网开放（application-prod.yml 中关闭）
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# ---------------- 业务自定义配置 ----------------
+studyroom:
+  # JWT（模块4 用户端 / 模块9 管理端使用；FR-UC-001 / FR-AD-001）
+  jwt:
+    # HMAC-SHA256 签名密钥（生产环境必须通过 JWT_SECRET 环境变量覆盖）
+    secret: ${STUDYROOM_JWT_SECRET:studyroom-dev-secret-key-please-override-in-production-0123456789}
+    issuer: studyroom
+    # 用户端 Token 有效期：7 天（秒）—— FR-UC-001
+    user-ttl-seconds: 604800
+    # 管理端 Token 有效期：2 小时（秒）—— FR-AD-001
+    admin-ttl-seconds: 7200
+    header: Authorization
+    prefix: "Bearer "
+    redis-prefix: "auth:token:"
+    blacklist-prefix: "auth:blacklist:"
+  # 加密（AES-256-CBC + HMAC-SHA256；FR-UC-004 / FR-UC-030）
+  crypto:
+    aes-key: ${STUDYROOM_CRYPTO_AES_KEY:studyroom-dev-aes-32bytes-key-1234567890}
+    hmac-key: ${STUDYROOM_CRYPTO_HMAC_KEY:studyroom-dev-hmac-key-please-override-in-production}
+  # 微信小程序（FR-UC-001 静默登录；FR-UC-044 订阅消息）
+  wechat:
+    appid: ${WECHAT_APPID:wx-your-appid}
+    secret: ${WECHAT_SECRET:your-app-secret}
+  # 邮件发件人（FR-UC-004 / FR-UC-046）
+  email:
+    from: ${MAIL_FROM:noreply@studyroom.local}
+  # 本地文件存储（FR-CC-003 当前替代方案；开通腾讯云 COS 后切换）
+  storage:
+    dir: ${STORAGE_DIR:./storage}
+    url-prefix: /api/file
+  # 跨域允许来源（开发阶段管理端本地调试；生产由 Nginx 代理）
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173

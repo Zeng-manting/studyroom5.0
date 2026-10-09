@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.studyroom</groupId>
+        <artifactId>studyroom-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>studyroom-mapper</artifactId>
+    <name>studyroom-mapper</name>
+    <description>持久层模块：MyBatis-Plus Mapper 接口与 XML（src/main/resources/mapper/）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.studyroom</groupId>
+            <artifactId>studyroom-entity</artifactId>
+        </dependency>
+        <!-- MyBatis-Plus（BaseMapper、分页插件等） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

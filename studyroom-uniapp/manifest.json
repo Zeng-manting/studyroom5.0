@@ -1,0 +1,28 @@
+{
+  "name": "studyroom-uniapp",
+  "appid": "",
+  "description": "无人自习室管理系统 - 用户端微信小程序",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "vueVersion": "3",
+  "locale": "zh-Hans",
+  "mp-weixin": {
+    "appid": "wx-your-appid",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "requiredPrivateInfos": [
+      "getLocation"
+    ],
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于计算您与自习室的距离及到店签到校验（FR-UC-007/029）"
+      }
+    }
+  }
+}

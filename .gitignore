@@ -1,0 +1,27 @@
+# ---- 依赖与缓存 ----
+node_modules/
+.npm-cache/
+.npm/
+.yarn/
+
+# ---- 构建产物 ----
+target/
+dist/
+build/
+unpackage/
+
+# ---- 日志 ----
+logs/
+*.log
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---- 本地环境配置 ----
+application-local.yml
+*.local
+.env.local
