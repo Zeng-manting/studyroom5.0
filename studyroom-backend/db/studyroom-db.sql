@@ -775,7 +775,7 @@ SELECT 1, id FROM `admin_permission`;
 
 -- 12.4 管理员默认账号（密码：123456 的 BCrypt 哈希，正式上线请替换）
 INSERT INTO `admin` (`id`, `username`, `password`, `real_name`, `role_id`, `status`) VALUES
-(1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '超级管理员', 1, 1);
+(1, 'admin', '$2a$10$KDa/N981bvaHYcq3vgetg./re4MtVuxMEJsOPGIY.G7fuokz9Mdde', '超级管理员', 1, 1);
 
 -- 12.5 座位类型
 INSERT INTO `seat_type` (`id`, `name`, `code`, `description`, `sort`, `status`) VALUES

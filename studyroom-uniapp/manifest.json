@@ -7,6 +7,16 @@
   "transformPx": false,
   "vueVersion": "3",
   "locale": "zh-Hans",
+  "h5": {
+    "title": "无人自习室",
+    "devServer": {
+      "port": 8090,
+      "disableHostCheck": true
+    },
+    "router": {
+      "mode": "hash"
+    }
+  },
   "mp-weixin": {
     "appid": "wx-your-appid",
     "setting": {

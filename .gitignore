@@ -25,3 +25,8 @@ Thumbs.db
 application-local.yml
 *.local
 .env.local
+
+# ---- 运行时数据 ----
+dump.rdb
+*.rdb
+storage/

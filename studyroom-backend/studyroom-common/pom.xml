@@ -71,7 +71,18 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-data-redis</artifactId>
                 </exclusion>
+                <!-- 排除 starter 默认携带的适配模块（面向 Spring Data Redis 3.x 编译，Boot 2.7 下缺 zset.Tuple 会 NoClassDefFoundError） -->
+                <exclusion>
+                    <groupId>org.redisson</groupId>
+                    <artifactId>redisson-spring-data-31</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <!-- 与 Spring Boot 2.7（Spring Data Redis 2.7.x）匹配的 Redisson 适配层 -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-data-27</artifactId>
+            <version>${redisson.version}</version>
         </dependency>
         <!-- AOP：限流/幂等注解 AOP 解析 -->
         <dependency>

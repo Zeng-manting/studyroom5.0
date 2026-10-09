@@ -40,9 +40,10 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
     private final JwtAccessDeniedHandler accessDeniedHandler;
 
+    // 注意：context-path 为 /api，Security 匹配路径不含该前缀，此处必须写应用内路径
     private static final String[] PUBLIC_URLS = new String[]{
             // 健康检查 / 文档
-            "/api/ping",
+            "/ping",
             "/error",
             "/doc.html",
             "/doc.html/**",
@@ -57,15 +58,15 @@ public class SecurityConfig {
             // 本地存储的图片资源（<image> 标签加载无法携带 JWT，FR-CC-003）
             "/file/**",
             // 公开业务接口（无需登录）
-            "/api/admin/login",                  // FR-AD-001 管理员登录
-            "/api/admin/captcha",                // 验证码
-            "/api/user/wx-login",                // FR-UC-001 微信静默登录
-            "/api/user/wx-phone",                // FR-UC-002 手机号授权
-            "/api/notice/public/**",             // 公告详情
-            "/api/store/public/**",              // 门店列表/详情
-            "/api/review/public/**",             // 评价展示
+            "/admin/login",                  // FR-AD-001 管理员登录
+            "/admin/captcha",                // 验证码
+            "/user/wx-login",                // FR-UC-001 微信静默登录
+            "/user/wx-phone",                // FR-UC-002 手机号授权
+            "/notice/public/**",             // 公告详情
+            "/store/public/**",              // 门店列表/详情
+            "/review/public/**",             // 评价展示
             // 幂等 token 签发（限流保护，按 IP 限流）
-            "/api/idempotent/token",
+            "/idempotent/token",
     };
 
     @Bean

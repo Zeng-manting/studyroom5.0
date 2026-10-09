@@ -22,7 +22,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 
 /**
  * JWT 认证过滤器（每个请求只执行一次）
@@ -83,12 +83,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 3) 写入 Spring Security 上下文（供 @PreAuthorize 鉴权）
-            String roleKey = loginUser.getRoleKey() == null
-                    ? UserTypeEnum.ADMIN.equals(loginUser.getUserType()) ? "ROLE_ADMIN" : "ROLE_USER"
-                    : "ROLE_" + loginUser.getRoleKey().toUpperCase();
+            // 管理端接口统一要求 hasRole('ADMIN')：管理员类型 token 始终授予 ROLE_ADMIN，
+            // 同时附加具体角色权限（如 ROLE_SUPER_ADMIN）供未来细粒度 RBAC 使用
+            java.util.List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
+            if (UserTypeEnum.ADMIN.equals(loginUser.getUserType())) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            }
+            if (loginUser.getRoleKey() != null) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + loginUser.getRoleKey().toUpperCase()));
+            } else if (!UserTypeEnum.ADMIN.equals(loginUser.getUserType())) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            }
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(loginUser, null,
-                            Collections.singletonList(new SimpleGrantedAuthority(roleKey)));
+                    new UsernamePasswordAuthenticationToken(loginUser, null, authorities);
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(auth);
 
