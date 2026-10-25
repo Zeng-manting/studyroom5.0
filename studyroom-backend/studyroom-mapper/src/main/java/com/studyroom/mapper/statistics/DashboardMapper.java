@@ -40,7 +40,7 @@ public interface DashboardMapper {
      */
     @Select("SELECT COUNT(*) FROM orders " +
             "WHERE deleted = 0 AND status != 4 " +
-            "AND create_time &gt;= #{start} AND create_time &lt; #{end}")
+            "AND create_time >= #{start} AND create_time < #{end}")
     long countOrdersCreatedBetween(@Param("start") LocalDateTime start,
                                    @Param("end") LocalDateTime end);
 
@@ -49,7 +49,7 @@ public interface DashboardMapper {
      */
     @Select("SELECT COALESCE(SUM(pay_amount), 0) FROM orders " +
             "WHERE deleted = 0 AND pay_time IS NOT NULL " +
-            "AND pay_time &gt;= #{start} AND pay_time &lt; #{end}")
+            "AND pay_time >= #{start} AND pay_time < #{end}")
     BigDecimal sumRevenueBetween(@Param("start") LocalDateTime start,
                                  @Param("end") LocalDateTime end);
 
@@ -58,7 +58,7 @@ public interface DashboardMapper {
      */
     @Select("SELECT COUNT(*) FROM user " +
             "WHERE deleted = 0 AND status = 1 " +
-            "AND last_login_time &gt;= #{start} AND last_login_time &lt; #{end}")
+            "AND last_login_time >= #{start} AND last_login_time < #{end}")
     long countActiveUsersBetween(@Param("start") LocalDateTime start,
                                  @Param("end") LocalDateTime end);
 
@@ -80,7 +80,7 @@ public interface DashboardMapper {
      */
     @Select("SELECT DATE_FORMAT(create_time, '%Y-%m-%d') AS date, COUNT(*) AS cnt " +
             "FROM orders " +
-            "WHERE deleted = 0 AND status != 4 AND create_time &gt;= #{since} " +
+            "WHERE deleted = 0 AND status != 4 AND create_time >= #{since} " +
             "GROUP BY DATE_FORMAT(create_time, '%Y-%m-%d')")
     List<Map<String, Object>> countOrdersDaily(@Param("since") LocalDateTime since);
 
@@ -91,7 +91,7 @@ public interface DashboardMapper {
      */
     @Select("SELECT DATE_FORMAT(pay_time, '%Y-%m-%d') AS date, COALESCE(SUM(pay_amount), 0) AS amount " +
             "FROM orders " +
-            "WHERE deleted = 0 AND pay_time IS NOT NULL AND pay_time &gt;= #{since} " +
+            "WHERE deleted = 0 AND pay_time IS NOT NULL AND pay_time >= #{since} " +
             "GROUP BY DATE_FORMAT(pay_time, '%Y-%m-%d')")
     List<Map<String, Object>> sumRevenueDaily(@Param("since") LocalDateTime since);
 
@@ -112,7 +112,7 @@ public interface DashboardMapper {
             "JOIN seat s ON o.seat_id = s.id AND s.deleted = 0 " +
             "LEFT JOIN seat_type st ON s.seat_type_id = st.id " +
             "WHERE o.deleted = 0 AND o.status IN (2, 3, 6, 7) " +
-            "AND o.start_time &gt;= #{since} " +
+            "AND o.start_time >= #{since} " +
             "GROUP BY o.seat_id, s.seat_no, st.name " +
             "ORDER BY usedMinutes DESC " +
             "LIMIT #{limit}")

@@ -1,5 +1,6 @@
 package com.studyroom.service.auth;
 
+import com.studyroom.entity.dto.user.H5LoginDTO;
 import com.studyroom.entity.dto.user.WxLoginDTO;
 import com.studyroom.entity.vo.user.LoginVO;
 
@@ -24,4 +25,12 @@ public interface AuthService {
      * @return token + 用户信息 + 是否新用户
      */
     LoginVO wxLogin(WxLoginDTO dto);
+
+    /**
+     * H5 端账号登录（含首次自动注册）
+     *
+     * @param dto 登录账号
+     * @return token + 用户信息 + 是否新用户
+     */
+    LoginVO h5Login(H5LoginDTO dto);
 }

@@ -11,6 +11,7 @@ import com.studyroom.common.result.ResultCode;
 import com.studyroom.common.utils.JwtTokenProvider;
 import com.studyroom.common.utils.RedisUtils;
 import com.studyroom.common.utils.WebUtils;
+import com.studyroom.entity.dto.user.H5LoginDTO;
 import com.studyroom.entity.dto.user.WxLoginDTO;
 import com.studyroom.entity.user.User;
 import com.studyroom.entity.vo.user.LoginVO;
@@ -53,6 +54,9 @@ public class AuthServiceImpl implements AuthService {
 
     /** 默认昵称 —— FR-UC-002 */
     private static final String DEFAULT_NICKNAME = "自习用户";
+
+    /** H5 端 openid 前缀（账号派生标识，避免与微信 openid 冲突） */
+    private static final String H5_OPENID_PREFIX = "h5_";
 
     private final WxMaService wxMaService;
     private final UserMapper userMapper;
@@ -119,6 +123,60 @@ public class AuthServiceImpl implements AuthService {
 
         UserVO userVO = userInfoService.toUserVO(user);
         log.info("[AuthServiceImpl] 登录成功 uid={} newUser={}", user.getId(), newUser);
+        return LoginVO.of(token, jwtProperties.getUserTtlSeconds(), newUser, userVO);
+    }
+
+    @Override
+    public LoginVO h5Login(H5LoginDTO dto) {
+        String account = dto.getAccount().trim();
+        // H5 无微信 openid，用账号派生唯一标识（前缀与真实 openid 隔离）
+        String openid = H5_OPENID_PREFIX + account;
+
+        // 1) 查询用户，不存在则自动注册
+        boolean newUser = false;
+        User user = userMapper.selectByOpenid(openid);
+        if (user == null) {
+            user = registerByOpenid(openid, null);
+            // 新用户昵称默认取账号，便于在列表/评价中辨识
+            if (DEFAULT_NICKNAME.equals(user.getNickname())) {
+                User patch = new User();
+                patch.setId(user.getId());
+                patch.setNickname(account);
+                userMapper.updateById(patch);
+                user.setNickname(account);
+            }
+            newUser = true;
+            log.info("[AuthServiceImpl] H5 新用户自动注册 uid={} account={}", user.getId(), account);
+        }
+
+        // 2) 账号禁用校验
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            log.warn("[AuthServiceImpl] 禁用账号尝试登录 uid={}", user.getId());
+            throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用，如有疑问请联系门店");
+        }
+
+        // 3) 更新登录信息（失败不影响主流程）
+        try {
+            User patch = new User();
+            patch.setId(user.getId());
+            patch.setLastLoginTime(LocalDateTime.now());
+            patch.setLastLoginIp(WebUtils.getClientIp());
+            userMapper.updateById(patch);
+        } catch (Exception e) {
+            log.warn("[AuthServiceImpl] 更新登录信息失败 uid={}: {}", user.getId(), e.getMessage());
+        }
+
+        // 4) 签发 JWT（用户端 7 天）
+        LoginUser loginUser = LoginUser.builder()
+                .id(user.getId())
+                .openid(openid)
+                .userType(UserTypeEnum.USER)
+                .roleKey(CommonConstants.ROLE_USER)
+                .build();
+        String token = jwtTokenProvider.generate(loginUser);
+
+        UserVO userVO = userInfoService.toUserVO(user);
+        log.info("[AuthServiceImpl] H5 登录成功 uid={} newUser={}", user.getId(), newUser);
         return LoginVO.of(token, jwtProperties.getUserTtlSeconds(), newUser, userVO);
     }
 

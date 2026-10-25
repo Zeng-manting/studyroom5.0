@@ -55,7 +55,8 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public StoreDetailVO getDetail(Long storeId) {
         Store store = storeMapper.selectById(storeId);
-        if (store == null || store.getDeleted() == 1) {
+        // @TableLogic 已过滤已删除记录，deleted 字段 select=false 不返回，不可再判 getDeleted()
+        if (store == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "门店不存在");
         }
         StoreDetailVO vo = new StoreDetailVO();

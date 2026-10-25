@@ -66,7 +66,7 @@ public interface OrderMapper extends BaseMapper<Orders> {
     @Select("SELECT seat_id FROM orders " +
             "WHERE store_id = #{storeId} AND deleted = 0 " +
             "AND status = 2 AND sign_time IS NOT NULL " +
-            "AND start_time &lt;= NOW() AND end_time &gt; NOW()")
+            "AND start_time <= NOW() AND end_time > NOW()")
     List<Long> selectInUseSeatIds(@Param("storeId") Long storeId);
 
     /**
@@ -106,7 +106,7 @@ public interface OrderMapper extends BaseMapper<Orders> {
             "    TIMESTAMPDIFF(MINUTE, start_time, end_time))) AS minutes " +
             "FROM orders " +
             "WHERE user_id = #{userId} AND deleted = 0 AND status IN (2, 3, 6, 7) " +
-            "AND COALESCE(actual_end_time, end_time) &gt;= #{since} " +
+            "AND COALESCE(actual_end_time, end_time) >= #{since} " +
             "GROUP BY DATE_FORMAT(COALESCE(actual_end_time, end_time), '%Y-%m-%d')")
     List<Map<String, Object>> selectDailyHeatmap(@Param("userId") Long userId,
                                                  @Param("since") LocalDateTime since);

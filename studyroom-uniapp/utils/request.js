@@ -118,8 +118,13 @@ function handle401(options, resolve, reject) {
     })
     .catch(() => {
       refreshing = false
-      // 重登失败：清空队列并提示
+      // 重登失败：清空队列
       pendingQueue = []
+      // 从未登录过（本地无 token）：静默引导到登录页，不提示"登录失效"
+      if (!getToken()) {
+        reject({ code: 401, message: '请先登录' })
+        return
+      }
       uni.showToast({ title: '登录失效，请重新进入小程序', icon: 'none' })
       reject({ code: 401, message: '登录失效' })
     })

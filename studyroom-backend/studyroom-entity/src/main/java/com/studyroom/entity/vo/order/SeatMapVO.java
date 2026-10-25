@@ -1,5 +1,6 @@
 package com.studyroom.entity.vo.order;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -73,9 +74,11 @@ public class SeatMapVO implements Serializable {
         private String floor;
 
         @ApiModelProperty("画布X坐标")
+        @JsonProperty("xCoord")
         private Integer xCoord;
 
         @ApiModelProperty("画布Y坐标")
+        @JsonProperty("yCoord")
         private Integer yCoord;
 
         /** 0空闲(绿) 1占用(灰) 2使用中(蓝) 3维护(橙) 4打扫(黄) 5锁定(红) */

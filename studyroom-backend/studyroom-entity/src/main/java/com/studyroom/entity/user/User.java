@@ -96,6 +96,7 @@ public class User implements Serializable {
     private LocalDateTime creditLimitEnd;
 
     /** 30天内爽约次数 —— FR-UC-053 */
+    @TableField("no_show_count_30d")
     @ApiModelProperty("30天内爽约次数")
     private Integer noShowCount30d;
 

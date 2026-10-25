@@ -1,5 +1,6 @@
 package com.studyroom.entity.vo.admin;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -36,9 +37,11 @@ public class AdminSeatVO implements Serializable {
     private String areaCode;
 
     @ApiModelProperty("画布X坐标")
+    @JsonProperty("xCoord")
     private Integer xCoord;
 
     @ApiModelProperty("画布Y坐标")
+    @JsonProperty("yCoord")
     private Integer yCoord;
 
     @ApiModelProperty("楼层")

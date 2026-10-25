@@ -1,5 +1,6 @@
 package com.studyroom.entity.dto.admin;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -60,12 +61,14 @@ public class SeatLayoutSaveDTO implements Serializable {
         @NotNull(message = "画布X坐标不能为空")
         @Min(value = 0, message = "X坐标不能为负")
         @Max(value = 5000, message = "X坐标超出画布范围")
+        @JsonProperty("xCoord")
         private Integer xCoord;
 
         @ApiModelProperty(value = "画布Y坐标", required = true)
         @NotNull(message = "画布Y坐标不能为空")
         @Min(value = 0, message = "Y坐标不能为负")
         @Max(value = 5000, message = "Y坐标超出画布范围")
+        @JsonProperty("yCoord")
         private Integer yCoord;
 
         @ApiModelProperty("楼层")

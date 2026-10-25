@@ -4,21 +4,29 @@
     <view class="card">
       <view class="row">
         <text class="label">头像</text>
+        <!-- #ifdef MP-WEIXIN -->
         <!-- 微信头像填写能力：open-type="chooseAvatar" -->
         <button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
           <image class="avatar" :src="form.avatar || defaultAvatar" mode="aspectFill" />
           <text class="hint">点击更换</text>
         </button>
+        <!-- #endif -->
+        <!-- #ifdef H5 -->
+        <view class="avatar-btn" @click="onChooseAvatarH5">
+          <image class="avatar" :src="form.avatar || defaultAvatar" mode="aspectFill" />
+          <text class="hint">点击更换</text>
+        </view>
+        <!-- #endif -->
       </view>
 
       <view class="row">
         <text class="label">昵称</text>
-        <!-- 微信昵称填写能力：type="nickname" -->
+        <!-- 微信昵称填写能力：type="nickname"（H5 降级为普通文本输入） -->
         <input
           class="nickname-input"
-          type="nickname"
+          :type="nicknameType"
           v-model="form.nickname"
-          placeholder="点击获取微信昵称或自行输入"
+          placeholder="请输入昵称"
           :maxlength="64"
           @blur="onNicknameBlur"
         />
@@ -50,6 +58,14 @@ const userStore = useUserStore()
 
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
+// #ifdef H5
+/** H5 无微信昵称填写能力，降级为普通文本输入 */
+const nicknameType = 'text'
+// #endif
+// #ifndef H5
+const nicknameType = 'nickname'
+// #endif
+
 const form = reactive({ avatar: '', nickname: '', gender: 0 })
 const genderOptions = ['未设置', '男', '女']
 const genderIndex = computed(() => form.gender || 0)
@@ -76,6 +92,25 @@ async function onChooseAvatar(e) {
     uni.hideLoading()
   }
 }
+
+// #ifdef H5
+/** H5：使用浏览器文件选择上传头像 */
+function onChooseAvatarH5() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    success: async (res) => {
+      const tempPath = res.tempFilePaths[0]
+      uni.showLoading({ title: '上传中' })
+      try {
+        form.avatar = await request.upload(tempPath, 'avatar')
+      } finally {
+        uni.hideLoading()
+      }
+    }
+  })
+}
+// #endif
 
 function onNicknameBlur(e) {
   form.nickname = (e.detail.value || '').trim()

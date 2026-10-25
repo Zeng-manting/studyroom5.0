@@ -501,7 +501,8 @@ public class OrderServiceImpl implements OrderService {
 
     private Seat loadSeat(Long storeId, Long seatId) {
         Seat seat = seatMapper.selectById(seatId);
-        if (seat == null || seat.getDeleted() == 1) {
+        // @TableLogic 已过滤已删除记录，deleted 字段 select=false 不返回，不可再判 getDeleted()
+        if (seat == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "座位不存在");
         }
         if (!seat.getStoreId().equals(storeId)) {
@@ -524,7 +525,8 @@ public class OrderServiceImpl implements OrderService {
 
     private Store loadStore(Long storeId) {
         Store store = storeMapper.selectById(storeId);
-        if (store == null || store.getDeleted() == 1) {
+        // @TableLogic 已过滤已删除记录，deleted 字段 select=false 不返回，不可再判 getDeleted()
+        if (store == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "门店不存在");
         }
         return store;
@@ -532,7 +534,8 @@ public class OrderServiceImpl implements OrderService {
 
     private Orders loadOwnedOrder(Long userId, Long orderId) {
         Orders order = orderMapper.selectById(orderId);
-        if (order == null || order.getDeleted() == 1) {
+        // @TableLogic 已过滤已删除记录，deleted 字段 select=false 不返回，不可再判 getDeleted()
+        if (order == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "订单不存在");
         }
         if (!order.getUserId().equals(userId)) {

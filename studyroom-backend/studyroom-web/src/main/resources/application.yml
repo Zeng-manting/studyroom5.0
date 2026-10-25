@@ -86,7 +86,8 @@ studyroom:
     blacklist-prefix: "auth:blacklist:"
   # 加密（AES-256-CBC + HMAC-SHA256；FR-UC-004 / FR-UC-030）
   crypto:
-    aes-key: ${STUDYROOM_CRYPTO_AES_KEY:studyroom-dev-aes-32bytes-key-1234567890}
+    # 注意：AES 密钥必须正好 16/24/32 字节（UTF-8），不是“≥32”
+    aes-key: ${STUDYROOM_CRYPTO_AES_KEY:studyroom-dev-aes-key-1234567890}
     hmac-key: ${STUDYROOM_CRYPTO_HMAC_KEY:studyroom-dev-hmac-key-please-override-in-production}
   # 微信小程序（FR-UC-001 静默登录；FR-UC-044 订阅消息）
   wechat:

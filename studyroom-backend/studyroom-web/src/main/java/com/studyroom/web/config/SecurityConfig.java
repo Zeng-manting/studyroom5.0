@@ -61,6 +61,7 @@ public class SecurityConfig {
             "/admin/login",                  // FR-AD-001 管理员登录
             "/admin/captcha",                // 验证码
             "/user/wx-login",                // FR-UC-001 微信静默登录
+            "/user/h5-login",                // H5 端账号登录
             "/user/wx-phone",                // FR-UC-002 手机号授权
             "/notice/public/**",             // 公告详情
             "/store/public/**",              // 门店列表/详情
@@ -74,6 +75,9 @@ public class SecurityConfig {
         http
                 // 关闭 CSRF（前后端分离 + JWT 无状态）
                 .csrf().disable()
+                // 启用 CORS：复用 WebMvcConfig 的跨域映射，并由过滤器提前响应预检请求
+                // （H5 跨域携带 Authorization 会触发 OPTIONS 预检，未启用时预检被鉴权链拦截返回 401）
+                .cors().and()
                 // 禁用表单登录
                 .formLogin().disable()
                 // 禁用 Basic Auth

@@ -17,9 +17,22 @@
         <view class="tip-item">④ 时间窗口（开始±15分钟）</view>
         <view class="tip-item">⑤ GPS 距离（≤100米）</view>
       </view>
+      <!-- #ifdef MP-WEIXIN -->
       <button class="btn-primary" :loading="locating" @click="startCheckIn">
         {{ locating ? '定位中…' : '扫码并签到' }}
       </button>
+      <!-- #endif -->
+      <!-- #ifdef H5 -->
+      <view class="field-label">签到码</view>
+      <input
+        class="h5-code-input"
+        v-model="h5Code"
+        placeholder="请输入或粘贴签到码内容"
+      />
+      <button class="btn-primary" :loading="locating" @click="startCheckIn">
+        {{ locating ? '签到中…' : '提交签到' }}
+      </button>
+      <!-- #endif -->
       <view v-if="locError" class="loc-error">{{ locError }}</view>
     </view>
 
@@ -116,6 +129,9 @@ export default {
       step: 'scan',            // scan | success | fail
       locating: false,
       locError: '',
+      // #ifdef H5
+      h5Code: '',              // H5 手动输入的签到码
+      // #endif
       result: {},
       // 申诉表单（FR-UC-032）
       reasons: REASONS,
@@ -141,7 +157,16 @@ export default {
             fail: () => reject(new Error('定位失败'))
           })
         })
-        // 2. 扫码（FR-UC-029）
+        // 2. 获取签到码：小程序扫码（FR-UC-029）/ H5 手动输入
+        let qrcode = ''
+        // #ifdef H5
+        qrcode = (this.h5Code || '').trim()
+        if (!qrcode) {
+          uni.showToast({ title: '请先输入签到码', icon: 'none' })
+          return
+        }
+        // #endif
+        // #ifndef H5
         const scan = await new Promise((resolve, reject) => {
           uni.scanCode({
             onlyFromCamera: true,
@@ -149,9 +174,11 @@ export default {
             fail: () => reject(new Error('cancel'))
           })
         })
+        qrcode = scan.result
+        // #endif
         // 3. 提交五重校验（FR-UC-030）
         const result = await checkIn({
-          qrcode: scan.result,
+          qrcode,
           latitude: loc.latitude,
           longitude: loc.longitude
         })
@@ -256,7 +283,7 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .page {
   min-height: 100vh;
   background: #f5f6fa;
@@ -398,6 +425,15 @@ export default {
   font-size: 26rpx;
   color: #4e5969;
   margin: 24rpx 0 12rpx;
+}
+/* H5 手动输入签到码 */
+.h5-code-input {
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #1f2329;
+  margin-bottom: 24rpx;
 }
 .picker-value {
   background: #f7f8fa;

@@ -461,7 +461,8 @@ public class AdminStoreServiceImpl implements AdminStoreService {
 
     private Store loadStore(Long storeId) {
         Store store = storeMapper.selectById(storeId);
-        if (store == null || store.getDeleted() == 1) {
+        // @TableLogic 已过滤已删除记录，deleted 字段 select=false 不返回，不可再判 getDeleted()
+        if (store == null) {
             throw new BusinessException("门店不存在");
         }
         return store;
