@@ -11,6 +11,7 @@ import com.studyroom.common.utils.RedissonUtils;
 import com.studyroom.entity.dto.order.CreateOrderDTO;
 import com.studyroom.entity.dto.order.PayOrderDTO;
 import com.studyroom.entity.order.OrderPayment;
+import com.studyroom.entity.order.OrderRefund;
 import com.studyroom.entity.order.Orders;
 import com.studyroom.entity.pkg.Package;
 import com.studyroom.entity.store.Seat;
@@ -23,6 +24,7 @@ import com.studyroom.entity.vo.order.TimelineVO;
 import com.studyroom.entity.vo.order.UsableCouponVO;
 import com.studyroom.mapper.order.OrderMapper;
 import com.studyroom.mapper.order.OrderPaymentMapper;
+import com.studyroom.mapper.order.OrderRefundMapper;
 import com.studyroom.mapper.pkg.PackageMapper;
 import com.studyroom.mapper.store.SeatMapper;
 import com.studyroom.mapper.store.SeatTypeMapper;
@@ -75,6 +77,7 @@ public class OrderServiceImpl implements OrderService {
     private final PackageMapper packageMapper;
     private final OrderMapper orderMapper;
     private final OrderPaymentMapper orderPaymentMapper;
+    private final OrderRefundMapper orderRefundMapper;
 
     private final PricingService pricingService;
     private final CouponService couponService;
@@ -370,6 +373,19 @@ public class OrderServiceImpl implements OrderService {
                 // FR-UC-027 退款回余额（微信支付亦退回余额，真实环境走原路退款）
                 walletService.refundToBalance(userId, refund, orderId,
                         "取消订单退款 " + order.getOrderNo());
+                // FR-UC-027 退款留痕（管理端财务-退款记录的数据来源）
+                OrderRefund refundRecord = new OrderRefund();
+                refundRecord.setId(IdGenerator.nextId());
+                refundRecord.setOrderId(orderId);
+                refundRecord.setRefundAmount(refund);
+                refundRecord.setRefundType(OrderRefund.TYPE_LADDER);
+                refundRecord.setStepType(ratio.compareTo(BigDecimal.ONE) == 0 ? "GT_60"
+                        : ratio.compareTo(CommonConstants.REFUND_RATIO_90) == 0 ? "FIFTEEN_TO_60" : "LT_15");
+                refundRecord.setRatio(ratio);
+                refundRecord.setRefundReason("用户取消订单，阶梯退款");
+                refundRecord.setStatus(1);
+                refundRecord.setRefundTime(LocalDateTime.now());
+                orderRefundMapper.insert(refundRecord);
                 // 释放优惠券
                 couponService.releaseFromOrder(order.getCouponId(), orderId);
             });

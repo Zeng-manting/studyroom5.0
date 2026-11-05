@@ -28,6 +28,7 @@
         class="h5-code-input"
         v-model="h5Code"
         placeholder="请输入或粘贴签到码内容"
+        :maxlength="-1"
       />
       <button class="btn-primary" :loading="locating" @click="startCheckIn">
         {{ locating ? '签到中…' : '提交签到' }}
@@ -303,12 +304,13 @@ export default {
       }
     },
 
-    /** 时间格式化 */
+    /** 时间格式化（兼容后端 ISO "2026-11-05T22:29:36" 与 "2026-11-05 22:29:36"） */
     fmt(t) {
       if (!t) return ''
-      const d = new Date(String(t).replace(/-/g, '/'))
+      const d = new Date(String(t).replace('T', ' ').replace(/-/g, '/'))
+      if (isNaN(d.getTime())) return ''
       const p = (n) => String(n).padStart(2, '0')
-      return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
     }
   }
 }

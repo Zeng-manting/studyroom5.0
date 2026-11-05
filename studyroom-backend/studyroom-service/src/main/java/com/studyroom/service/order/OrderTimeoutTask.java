@@ -2,8 +2,11 @@ package com.studyroom.service.order;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.studyroom.common.constants.CommonConstants;
+import com.studyroom.common.utils.IdGenerator;
+import com.studyroom.entity.order.OrderRefund;
 import com.studyroom.entity.order.Orders;
 import com.studyroom.mapper.order.OrderMapper;
+import com.studyroom.mapper.order.OrderRefundMapper;
 import com.studyroom.service.coupon.CouponService;
 import com.studyroom.service.message.MessageService;
 import com.studyroom.service.user.CreditService;
@@ -33,6 +36,7 @@ import java.time.LocalDateTime;
 public class OrderTimeoutTask {
 
     private final OrderMapper orderMapper;
+    private final OrderRefundMapper orderRefundMapper;
     private final CouponService couponService;
     private final WalletService walletService;
     private final OrderUsageService orderUsageService;
@@ -118,6 +122,18 @@ public class OrderTimeoutTask {
         // 退款回充余额（FR-UC-026 按比例退款）
         walletService.refundToBalance(order.getUserId(), refund, orderId,
                 "未签到自动取消退款 " + order.getOrderNo());
+        // 退款留痕（管理端财务-退款记录的数据来源）
+        OrderRefund refundRecord = new OrderRefund();
+        refundRecord.setId(IdGenerator.nextId());
+        refundRecord.setOrderId(orderId);
+        refundRecord.setRefundAmount(refund);
+        refundRecord.setRefundType(OrderRefund.TYPE_NO_SHOW);
+        refundRecord.setStepType("LT_15");
+        refundRecord.setRatio(ratio);
+        refundRecord.setRefundReason("开始后30分钟未签到，系统自动取消并退款");
+        refundRecord.setStatus(1);
+        refundRecord.setRefundTime(now);
+        orderRefundMapper.insert(refundRecord);
         // 释放优惠券
         couponService.releaseFromOrder(order.getCouponId(), orderId);
         // FR-UC-053/054 爽约信用记账：扣信用分 + 30 天计数，达 3 次自动置 7 天预约限制

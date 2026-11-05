@@ -86,7 +86,7 @@ public interface AdminStatsMapper {
     /**
      * 每日退款金额，FR-AD-021 退款趋势
      */
-    @Select("SELECT DATE(create_time) AS date, SUM(amount) AS amount, COUNT(*) AS cnt " +
+    @Select("SELECT DATE(create_time) AS date, SUM(refund_amount) AS amount, COUNT(*) AS cnt " +
             "FROM order_refund WHERE create_time >= #{begin} AND create_time < #{end} " +
             "GROUP BY DATE(create_time)")
     List<Map<String, Object>> dailyRefund(@Param("begin") LocalDateTime begin,
@@ -166,7 +166,7 @@ public interface AdminStatsMapper {
     /**
      * 区间退款合计
      */
-    @Select("SELECT IFNULL(SUM(amount), 0) FROM order_refund " +
+    @Select("SELECT IFNULL(SUM(refund_amount), 0) FROM order_refund " +
             "WHERE create_time >= #{begin} AND create_time < #{end}")
     BigDecimal sumRefund(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end);
 }
