@@ -41,7 +41,7 @@ public class CommonController {
     private final RedisUtils redisUtils;
     private final JwtProperties jwtProperties;
 
-    @GetMapping("/api/idempotent/token")
+    @GetMapping("/idempotent/token")
     @ApiOperation("获取幂等 token（前端表单提交前预取）")
     public Result<Map<String, String>> issueToken(
             @ApiParam(value = "业务域 key（order:create / refund / sign ...）", required = true)
@@ -57,7 +57,7 @@ public class CommonController {
         return Result.ok(data);
     }
 
-    @PostMapping("/api/logout")
+    @PostMapping("/logout")
     @ApiOperation("登出：把当前 token 列入 Redis 黑名单")
     public Result<Void> logout() {
         LoginUser u = AuthContextHolder.get();

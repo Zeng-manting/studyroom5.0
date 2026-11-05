@@ -3,6 +3,15 @@
     <!-- 筛选栏 FR-AD-016 -->
     <el-card shadow="never" class="filter-card">
       <el-form inline :model="query" @submit.prevent>
+        <el-form-item label="标题">
+          <el-input
+            v-model="query.keyword"
+            clearable
+            placeholder="搜索标题"
+            style="width: 200px"
+            @keyup.enter="onSearch"
+          />
+        </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="query.type" clearable placeholder="全部" style="width: 130px">
             <el-option v-for="(label, t) in TYPES" :key="t" :label="label" :value="Number(t)" />
@@ -166,7 +175,7 @@ defineOptions({ name: 'NoticeList' })
 const TYPES = { 1: '门店规则', 2: '停业通知', 3: '活动公告', 4: '其他' }
 const STATUS = { 0: '草稿', 1: '已发布', 2: '已下架' }
 
-const query = reactive({ type: null, status: null, page: 1, size: 20 })
+const query = reactive({ keyword: '', type: null, status: null, page: 1, size: 20 })
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -202,9 +211,9 @@ const statusTag = (s) => ({ 0: 'info', 1: 'success', 2: 'warning' })[s] || 'info
 const load = async () => {
   loading.value = true
   try {
-    const { data } = await pageNotices(query)
-    list.value = data.list || []
-    total.value = Number(data.total || 0)
+    const page = await pageNotices(query)
+    list.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }
@@ -216,6 +225,7 @@ const onSearch = () => {
 }
 
 const onReset = () => {
+  query.keyword = ''
   query.type = null
   query.status = null
   onSearch()
@@ -254,14 +264,14 @@ const openEdit = async (row) => {
   if (row) {
     // 编辑：拉详情回显
     try {
-      const { data } = await getNotice(row.id)
-      form.id = data.id
-      form.storeId = data.storeId
-      form.title = data.title
-      form.type = data.type
-      form.isImportant = data.isImportant
-      form.content = data.content || ''
-      form.attachments = (data.attachments || []).map((a) => ({
+      const detail = await getNotice(row.id)
+      form.id = detail.id
+      form.storeId = detail.storeId
+      form.title = detail.title
+      form.type = detail.type
+      form.isImportant = detail.isImportant
+      form.content = detail.content || ''
+      form.attachments = (detail.attachments || []).map((a) => ({
         fileName: a.fileName,
         fileUrl: a.fileUrl
       }))
@@ -349,7 +359,7 @@ const onDelete = async (row) => {
 
 onMounted(() => {
   load()
-  listStores().then(({ data }) => (stores.value = data || [])).catch(() => {})
+  listStores().then((list) => (stores.value = list || [])).catch(() => {})
 })
 </script>
 

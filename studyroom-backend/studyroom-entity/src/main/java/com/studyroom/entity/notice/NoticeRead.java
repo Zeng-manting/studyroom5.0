@@ -1,7 +1,5 @@
 package com.studyroom.entity.notice;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
@@ -34,7 +32,4 @@ public class NoticeRead implements Serializable {
 
     @ApiModelProperty("已读时间")
     private LocalDateTime readTime;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
 }

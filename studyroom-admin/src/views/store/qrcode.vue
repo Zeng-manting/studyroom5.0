@@ -43,6 +43,15 @@
             :title="`有效期至 ${fmt(qrData.expireAt)}`"
           />
 
+          <!-- 签到码文本（H5 端手动输入签到使用） -->
+          <div v-if="qrData" class="code-panel">
+            <div class="code-label">
+              <span>签到码文本（H5 端手动输入使用）</span>
+              <el-button size="small" text type="primary" @click="onCopyCode">复制</el-button>
+            </div>
+            <div class="code-text">{{ qrData.code }}</div>
+          </div>
+
           <el-divider content-position="left">安全说明</el-divider>
           <div class="security muted">
             二维码内容为 <code>SR-SIGN:{AES-256密文}:{HMAC-SHA256签名}</code>，
@@ -157,6 +166,16 @@ function fmt(t) {
   return t ? String(t).replace('T', ' ').slice(0, 16) : ''
 }
 
+/** 复制签到码文本到剪贴板 */
+async function onCopyCode() {
+  try {
+    await navigator.clipboard.writeText(qrData.value.code)
+    ElMessage.success('签到码已复制')
+  } catch {
+    ElMessage.warning('复制失败，请手动选择文本复制')
+  }
+}
+
 onMounted(loadStores)
 </script>
 
@@ -207,5 +226,27 @@ onMounted(loadStores)
   margin-top: 16px;
   display: flex;
   gap: 8px;
+}
+.code-panel {
+  margin-top: 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.code-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 6px;
+}
+.code-text {
+  font-size: 12px;
+  word-break: break-all;
+  color: #303133;
+  font-family: monospace;
+  user-select: all;
 }
 </style>

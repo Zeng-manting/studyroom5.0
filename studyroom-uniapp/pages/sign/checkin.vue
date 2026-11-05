@@ -113,6 +113,9 @@
  * 5. 失败 → 显示失败原因 + 申诉表单（FR-UC-032）
  */
 import { checkIn, submitAppeal, uploadAppealImage } from '@/api/checkin'
+// #ifdef H5
+import { getStoreList, getStoreDetail } from '@/api/store'
+// #endif
 
 /** 申诉原因枚举（与后端 AppealCreateDTO.reasonType 对应） */
 const REASONS = [
@@ -149,15 +152,7 @@ export default {
       this.locError = ''
       this.locating = true
       try {
-        // 1. 获取 GPS 定位（uni.getLocation，gcj02 与国内地图坐标系一致）
-        const loc = await new Promise((resolve, reject) => {
-          uni.getLocation({
-            type: 'gcj02',
-            success: resolve,
-            fail: () => reject(new Error('定位失败'))
-          })
-        })
-        // 2. 获取签到码：小程序扫码（FR-UC-029）/ H5 手动输入
+        // 1. 获取签到码：H5 手动输入 / 小程序扫码（FR-UC-029）
         let qrcode = ''
         // #ifdef H5
         qrcode = (this.h5Code || '').trim()
@@ -176,6 +171,25 @@ export default {
         })
         qrcode = scan.result
         // #endif
+
+        // 2. 获取 GPS 定位（uni.getLocation，gcj02 与国内地图坐标系一致）
+        let loc = null
+        try {
+          loc = await new Promise((resolve, reject) => {
+            uni.getLocation({
+              type: 'gcj02',
+              success: resolve,
+              fail: () => reject(new Error('定位失败'))
+            })
+          })
+        } catch (e) {
+          // #ifdef H5
+          // 桌面浏览器无 GPS/定位常被拒绝：回退为门店坐标（演示场景视为已到店）
+          loc = await this.fetchStoreLocation()
+          // #endif
+          if (!loc) throw e
+        }
+
         // 3. 提交五重校验（FR-UC-030）
         const result = await checkIn({
           qrcode,
@@ -198,6 +212,23 @@ export default {
         this.locating = false
       }
     },
+
+    // #ifdef H5
+    /** H5 定位兜底：取首个门店坐标作为签到位置（桌面浏览器演示用；列表 VO 无坐标需查详情） */
+    async fetchStoreLocation() {
+      try {
+        const list = await getStoreList()
+        const first = (list || [])[0]
+        if (!first) return null
+        const store = await getStoreDetail(first.id)
+        if (store && store.latitude && store.longitude) {
+          uni.showToast({ title: '定位不可用，已按门店位置签到（H5 演示模式）', icon: 'none' })
+          return { latitude: Number(store.latitude), longitude: Number(store.longitude) }
+        }
+      } catch (e) { /* 忽略，按定位失败处理 */ }
+      return null
+    },
+    // #endif
 
     /** 进入使用中页（FR-UC-031） */
     goUsage() {

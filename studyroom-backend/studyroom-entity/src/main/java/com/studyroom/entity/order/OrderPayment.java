@@ -1,7 +1,5 @@
 package com.studyroom.entity.order;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
@@ -52,7 +50,4 @@ public class OrderPayment implements Serializable {
 
     @ApiModelProperty("备注")
     private String remark;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
 }

@@ -50,13 +50,16 @@ public class AdminNoticeServiceImpl implements AdminNoticeService {
     /* ==================== 公告列表 ==================== */
 
     @Override
-    public PageResult<AdminNoticeVO> pageNotices(Integer type, Integer status, long page, long size) {
+    public PageResult<AdminNoticeVO> pageNotices(Integer type, Integer status, String keyword, long page, long size) {
         LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<>();
         if (type != null) {
             wrapper.eq(Notice::getType, type);
         }
         if (status != null) {
             wrapper.eq(Notice::getStatus, status);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.like(Notice::getTitle, keyword.trim());
         }
         wrapper.orderByDesc(Notice::getCreateTime);
 

@@ -229,9 +229,9 @@ function fmtTime(t) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await pageCoupons(query)
-    list.value = data.list || []
-    total.value = Number(data.total || 0)
+    const page = await pageCoupons(query)
+    list.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }
@@ -303,8 +303,8 @@ async function submitGrant() {
   if (!ids.length) return ElMessage.warning('请输入至少一个有效的用户 ID')
   granting.value = true
   try {
-    const { data } = await grantCoupon({ couponId: grantTarget.value.id, userIds: ids })
-    ElMessage.success(`发放完成：成功 ${data} 人（超限/无效用户已跳过）`)
+    const granted = await grantCoupon({ couponId: grantTarget.value.id, userIds: ids })
+    ElMessage.success(`发放完成：成功 ${granted} 人（超限/无效用户已跳过）`)
     grantVisible.value = false
     load()
   } finally {
@@ -316,8 +316,7 @@ async function submitGrant() {
 async function openClaims(row) {
   claimsTarget.value = row
   claimsVisible.value = true
-  const { data } = await listClaims(row.id)
-  claims.value = data || []
+  claims.value = (await listClaims(row.id)) || []
 }
 
 onMounted(load)

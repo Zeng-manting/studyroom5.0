@@ -178,9 +178,9 @@ const params = computed(() => ({
 const load = async () => {
   loading.value = true
   try {
-    const { data } = await pageReviews(params.value)
-    list.value = data.list || []
-    total.value = Number(data.total || 0)
+    const page = await pageReviews(params.value)
+    list.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }
@@ -215,10 +215,10 @@ const onReply = async () => {
   }
   replying.value = true
   try {
-    const { data } = await replyReview(replyTarget.value.id, content)
+    const updated = await replyReview(replyTarget.value.id, content)
     // 局部更新，避免整页刷新
-    const idx = list.value.findIndex((r) => r.id === data.id)
-    if (idx >= 0) list.value[idx] = data
+    const idx = list.value.findIndex((r) => r.id === updated.id)
+    if (idx >= 0) list.value[idx] = updated
     ElMessage.success('回复成功')
     replyVisible.value = false
   } finally {

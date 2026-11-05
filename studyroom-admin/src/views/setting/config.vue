@@ -67,7 +67,7 @@ function groupTitle(group) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await listConfigs()
+    const data = await listConfigs()
     groups.value = data || {}
     activeGroups.length = 0
     Object.keys(groups.value).forEach((g) => activeGroups.push(g))

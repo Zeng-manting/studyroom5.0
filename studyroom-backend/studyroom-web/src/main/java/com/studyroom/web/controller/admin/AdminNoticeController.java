@@ -58,9 +58,11 @@ public class AdminNoticeController {
             @RequestParam(required = false) Integer type,
             @ApiParam("状态：0草稿 1已发布 2已下架（空=全部）")
             @RequestParam(required = false) Integer status,
+            @ApiParam("标题关键字（模糊匹配，空=不限）")
+            @RequestParam(required = false) String keyword,
             @ApiParam("页码，默认 1") @RequestParam(defaultValue = "1") long page,
             @ApiParam("每页条数，默认 20，上限 100") @RequestParam(defaultValue = "20") long size) {
-        return Result.ok(adminNoticeService.pageNotices(type, status, page, Math.min(size, 100)));
+        return Result.ok(adminNoticeService.pageNotices(type, status, keyword, page, Math.min(size, 100)));
     }
 
     @GetMapping("/{noticeId}")

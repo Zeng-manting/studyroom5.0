@@ -1,7 +1,5 @@
 package com.studyroom.entity.coupon;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
@@ -51,7 +49,4 @@ public class CouponClaim implements Serializable {
 
     @ApiModelProperty("过期时间")
     private LocalDateTime expireTime;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
 }

@@ -2,19 +2,26 @@
   <!-- 订单确认页：FR-UC-022 费用明细 + FR-UC-023 支付方式 + FR-UC-024 优惠券 -->
   <view class="page">
     <view v-if="preview" class="body">
-      <!-- 座位与时段信息（FR-UC-022） -->
-      <view class="card">
-        <view class="store-name">{{ preview.storeName }}</view>
-        <view class="seat-row">
-          <view class="seat-no">{{ preview.seatNo }}</view>
-          <view class="seat-type">{{ preview.seatTypeName }} · {{ preview.packageName }}</view>
+      <!-- 座位与时段信息（FR-UC-022）：渐变主视觉卡片 -->
+      <view class="hero-card">
+        <view class="hero-store">{{ preview.storeName }}</view>
+        <view class="hero-seat-row">
+          <text class="hero-seat">{{ preview.seatNo }}</text>
+          <view class="hero-tags">
+            <text class="hero-tag">{{ preview.seatTypeName }}</text>
+            <text class="hero-tag">{{ preview.packageName }}</text>
+          </view>
         </view>
-        <view class="time-row">
+        <view class="hero-timeline">
           <view class="time-block">
             <text class="time-label">开始</text>
             <text class="time-val">{{ fmt(preview.startTime) }}</text>
           </view>
-          <view class="time-arrow">→</view>
+          <view class="time-line">
+            <view class="time-dot"></view>
+            <view class="time-dash"></view>
+            <view class="time-dot"></view>
+          </view>
           <view class="time-block">
             <text class="time-label">结束</text>
             <text class="time-val">{{ fmt(preview.endTime) }}</text>
@@ -23,17 +30,24 @@
       </view>
 
       <!-- 优惠券（FR-UC-024） -->
-      <view class="card" @click="showCoupons = true">
+      <view class="card coupon-bar" @click="showCoupons = true">
         <view class="row">
-          <text class="row-label">优惠券</text>
-          <text v-if="coupon" class="row-value highlight">-¥{{ coupon.deductibleAmount }}（{{ coupon.discountDesc }}）</text>
-          <text v-else-if="coupons.length" class="row-value link">{{ coupons.length }} 张可用 ›</text>
-          <text v-else class="row-value grey">暂无可用</text>
+          <view class="row-left">
+            <text class="row-icon">🎟️</text>
+            <text class="row-label">优惠券</text>
+          </view>
+          <view class="row-right">
+            <text v-if="coupon" class="row-value highlight">-¥{{ coupon.deductibleAmount }}（{{ coupon.discountDesc }}）</text>
+            <text v-else-if="coupons.length" class="row-value link">{{ coupons.length }} 张可用</text>
+            <text v-else class="row-value grey">暂无可用</text>
+            <text class="row-arrow">›</text>
+          </view>
         </view>
       </view>
 
       <!-- 费用明细（FR-UC-022：原价 - 优惠 - 实付） -->
       <view class="card">
+        <view class="card-title">费用明细</view>
         <view class="row">
           <text class="row-label">原价</text>
           <text class="row-value">¥{{ preview.originalPrice }}</text>
@@ -47,8 +61,11 @@
           <text class="row-value highlight">-¥{{ preview.couponAmount }}</text>
         </view>
         <view class="row total-row">
-          <text class="row-label">实付</text>
-          <text class="total">¥{{ payAmount }}</text>
+          <text class="row-label">实付金额</text>
+          <view class="total-wrap">
+            <text class="total-symbol">¥</text>
+            <text class="total">{{ payAmount }}</text>
+          </view>
         </view>
       </view>
 
@@ -56,21 +73,29 @@
       <view class="card">
         <view class="card-title">支付方式</view>
         <view class="pay-item" :class="{ active: payType === 1 }" @click="payType = 1">
-          <text class="pay-icon">💰</text>
+          <view class="pay-icon-wrap balance">
+            <text class="pay-icon">💰</text>
+          </view>
           <view class="pay-info">
             <text class="pay-name">余额支付</text>
-            <text class="pay-sub">余额 ¥{{ preview.userBalance }}</text>
+            <text class="pay-sub">当前余额 ¥{{ preview.userBalance }}</text>
           </view>
           <text v-if="insufficient" class="pay-warn">余额不足</text>
-          <view class="radio" :class="{ on: payType === 1 }" />
+          <view class="radio" :class="{ on: payType === 1 }">
+            <view v-if="payType === 1" class="radio-inner"></view>
+          </view>
         </view>
         <view class="pay-item" :class="{ active: payType === 2 }" @click="payType = 2">
-          <text class="pay-icon">💚</text>
+          <view class="pay-icon-wrap wechat">
+            <text class="pay-icon">💬</text>
+          </view>
           <view class="pay-info">
             <text class="pay-name">微信支付</text>
             <text class="pay-sub">模拟支付（联调环境）</text>
           </view>
-          <view class="radio" :class="{ on: payType === 2 }" />
+          <view class="radio" :class="{ on: payType === 2 }">
+            <view v-if="payType === 2" class="radio-inner"></view>
+          </view>
         </view>
       </view>
     </view>
@@ -81,10 +106,11 @@
     <view class="footer-bar">
       <view class="footer-amount">
         <text class="footer-label">应付</text>
-        <text class="footer-num">¥{{ payAmount }}</text>
+        <text class="footer-symbol">¥</text>
+        <text class="footer-num">{{ payAmount }}</text>
       </view>
       <button class="footer-btn" :disabled="submitting || !preview" :class="{ disabled: submitting || !preview }"
-              @click="submitPay">立即支付</button>
+              @click="submitPay">{{ submitting ? '支付中…' : '立即支付' }}</button>
     </view>
 
     <!-- 优惠券弹层（FR-UC-024） -->
@@ -97,12 +123,16 @@
                 :class="{ active: coupon && coupon.claimId === c.claimId }"
                 @click="pickCoupon(c)">
             <view class="coupon-left">
-              <text class="coupon-amount">¥{{ c.deductibleAmount }}</text>
+              <text class="coupon-symbol">¥</text>
+              <text class="coupon-amount">{{ c.deductibleAmount }}</text>
             </view>
+            <view class="coupon-divider"></view>
             <view class="coupon-right">
-              <text class="coupon-name">{{ c.name }}（{{ c.discountDesc }}）</text>
+              <text class="coupon-name">{{ c.name }}</text>
+              <text class="coupon-desc">{{ c.discountDesc }}</text>
               <text class="coupon-expire">{{ c.expireTime }} 前有效</text>
             </view>
+            <view class="coupon-pick" :class="{ on: coupon && coupon.claimId === c.claimId }"></view>
           </view>
         </scroll-view>
       </view>
@@ -210,59 +240,196 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page { padding: 24rpx 24rpx 160rpx; background: #f5f6fa; min-height: 100vh; }
+.page { padding: 24rpx 24rpx 200rpx; background: #f5f6fa; min-height: 100vh; box-sizing: border-box; }
 .body { display: flex; flex-direction: column; gap: 24rpx; }
-.card { background: #fff; border-radius: 20rpx; padding: 24rpx; }
-.card-title { font-size: 30rpx; font-weight: 600; color: #1f2329; margin-bottom: 16rpx; }
+.card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.04);
+}
+.card-title { font-size: 30rpx; font-weight: 700; color: #1f2329; margin-bottom: 20rpx; }
 
-.store-name { font-size: 30rpx; font-weight: 600; color: #1f2329; margin-bottom: 16rpx; }
-.seat-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 20rpx; }
-.seat-no { font-size: 40rpx; font-weight: 700; color: #4a7cf7; }
-.seat-type { font-size: 24rpx; color: #86909c; }
-.time-row { display: flex; align-items: center; justify-content: space-between; background: #f5f6fa; border-radius: 14rpx; padding: 20rpx; }
-.time-block { flex: 1; text-align: center; }
-.time-label { display: block; font-size: 22rpx; color: #86909c; margin-bottom: 6rpx; }
-.time-val { font-size: 30rpx; font-weight: 600; color: #1f2329; }
-.time-arrow { color: #c9cdd4; font-size: 32rpx; }
+/* ---------- 主视觉卡片 ---------- */
+.hero-card {
+  background: linear-gradient(135deg, #4a7cf7 0%, #6b96ff 100%);
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(74, 124, 247, 0.28);
+}
+.hero-store { font-size: 26rpx; color: rgba(255, 255, 255, 0.85); margin-bottom: 16rpx; }
+.hero-seat-row { display: flex; align-items: center; gap: 20rpx; margin-bottom: 28rpx; }
+.hero-seat { font-size: 56rpx; font-weight: 700; color: #fff; letter-spacing: 2rpx; }
+.hero-tags { display: flex; gap: 12rpx; }
+.hero-tag {
+  font-size: 20rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999rpx;
+  padding: 6rpx 18rpx;
+}
+.hero-timeline {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 16rpx;
+  padding: 22rpx 24rpx;
+}
+.time-block { flex-shrink: 0; text-align: center; }
+.time-label { display: block; font-size: 20rpx; color: rgba(255, 255, 255, 0.75); margin-bottom: 6rpx; }
+.time-val { font-size: 30rpx; font-weight: 600; color: #fff; }
+.time-line { flex: 1; display: flex; align-items: center; margin: 0 20rpx; }
+.time-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: #fff; flex-shrink: 0; }
+.time-dash { flex: 1; height: 0; border-top: 2rpx dashed rgba(255, 255, 255, 0.6); }
 
+/* ---------- 行 ---------- */
 .row { display: flex; align-items: center; justify-content: space-between; padding: 14rpx 0; }
+.row-left { display: flex; align-items: center; gap: 14rpx; }
+.row-right { display: flex; align-items: center; gap: 10rpx; }
+.row-icon { font-size: 30rpx; }
 .row-label { font-size: 27rpx; color: #4e5969; }
 .row-value { font-size: 27rpx; color: #1f2329; }
-.row-value.highlight { color: #ff7d00; }
+.row-value.highlight { color: #ff7d00; font-weight: 600; }
 .row-value.link { color: #4a7cf7; }
 .row-value.grey { color: #c9cdd4; }
-.total-row { border-top: 1rpx solid #f2f3f5; margin-top: 8rpx; padding-top: 20rpx; }
-.total { font-size: 40rpx; font-weight: 700; color: #ff7d00; }
+.row-arrow { color: #c9cdd4; font-size: 32rpx; }
+.coupon-bar:active { background: #f7f8fa; }
 
-.pay-item { display: flex; align-items: center; padding: 24rpx 16rpx; border: 2rpx solid #f2f3f5; border-radius: 14rpx; margin-bottom: 16rpx; }
-.pay-item.active { border-color: #4a7cf7; background: rgba(74, 124, 247, .04); }
-.pay-icon { font-size: 40rpx; margin-right: 20rpx; }
+.total-row { border-top: 2rpx solid #f2f3f5; margin-top: 12rpx; padding-top: 24rpx; }
+.total-wrap { display: flex; align-items: baseline; }
+.total-symbol { font-size: 26rpx; font-weight: 700; color: #ff7d00; margin-right: 4rpx; }
+.total { font-size: 48rpx; font-weight: 700; color: #ff7d00; }
+
+/* ---------- 支付方式 ---------- */
+.pay-item {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 20rpx;
+  border: 2rpx solid #f2f3f5;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.pay-item:last-child { margin-bottom: 0; }
+.pay-item.active { border-color: #4a7cf7; background: rgba(74, 124, 247, 0.05); }
+.pay-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+.pay-icon-wrap.balance { background: #fff3e0; }
+.pay-icon-wrap.wechat { background: #e8f8ee; }
+.pay-icon { font-size: 36rpx; }
 .pay-info { flex: 1; display: flex; flex-direction: column; }
-.pay-name { font-size: 28rpx; color: #1f2329; font-weight: 500; }
+.pay-name { font-size: 28rpx; color: #1f2329; font-weight: 600; }
 .pay-sub { margin-top: 4rpx; font-size: 22rpx; color: #86909c; }
 .pay-warn { font-size: 22rpx; color: #f53f3f; margin-right: 12rpx; }
-.radio { width: 32rpx; height: 32rpx; border-radius: 50%; border: 2rpx solid #c9cdd4; }
-.radio.on { border-color: #4a7cf7; background: #4a7cf7; box-shadow: inset 0 0 0 6rpx #fff; }
+.radio {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  border: 2rpx solid #c9cdd4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.radio.on { border-color: #4a7cf7; }
+.radio-inner { width: 20rpx; height: 20rpx; border-radius: 50%; background: #4a7cf7; }
 
-.footer-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, .04); }
-.footer-amount { flex: 1; display: flex; align-items: baseline; gap: 10rpx; }
+/* ---------- 底部支付栏 ---------- */
+.footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+.footer-amount { flex: 1; display: flex; align-items: baseline; gap: 8rpx; }
 .footer-label { font-size: 26rpx; color: #4e5969; }
-.footer-num { font-size: 44rpx; font-weight: 700; color: #ff7d00; }
-.footer-btn { width: 260rpx; height: 88rpx; line-height: 88rpx; background: #4a7cf7; color: #fff; font-size: 30rpx; border-radius: 44rpx; }
-.footer-btn.disabled { background: #c9cdd4; }
+.footer-symbol { font-size: 26rpx; font-weight: 700; color: #ff7d00; }
+.footer-num { font-size: 48rpx; font-weight: 700; color: #ff7d00; }
+.footer-btn {
+  width: 280rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #4a7cf7, #6b96ff);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+  box-shadow: 0 8rpx 20rpx rgba(74, 124, 247, 0.3);
+}
+.footer-btn.disabled { background: #e5e6eb; color: #a9aeb8; box-shadow: none; }
 
-.loading { padding: 120rpx 0; text-align: center; color: #86909c; }
+.loading { padding: 120rpx 0; text-align: center; color: #86909c; font-size: 26rpx; }
 
-.mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 99; display: flex; align-items: flex-end; }
-.sheet { width: 100%; background: #fff; border-radius: 32rpx 32rpx 0 0; padding: 32rpx 24rpx calc(32rpx + env(safe-area-inset-bottom)); max-height: 70vh; display: flex; flex-direction: column; }
-.sheet-title { text-align: center; font-size: 32rpx; font-weight: 600; color: #1f2329; margin-bottom: 24rpx; }
+/* ---------- 优惠券弹层 ---------- */
+.mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 99; display: flex; align-items: flex-end; }
+.sheet {
+  width: 100%;
+  background: #f7f8fa;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 24rpx calc(32rpx + env(safe-area-inset-bottom));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.sheet-title { text-align: center; font-size: 32rpx; font-weight: 700; color: #1f2329; margin-bottom: 24rpx; }
 .sheet-body { max-height: 50vh; }
-.coupon-none { text-align: center; padding: 26rpx; color: #86909c; font-size: 27rpx; border-bottom: 1rpx solid #f2f3f5; }
-.coupon-item { display: flex; align-items: center; padding: 24rpx 16rpx; border: 2rpx solid #f2f3f5; border-radius: 14rpx; margin-bottom: 16rpx; }
-.coupon-item.active { border-color: #ff7d00; background: rgba(255, 125, 0, .04); }
-.coupon-left { width: 140rpx; text-align: center; }
-.coupon-amount { font-size: 38rpx; font-weight: 700; color: #ff7d00; }
-.coupon-right { flex: 1; display: flex; flex-direction: column; }
-.coupon-name { font-size: 27rpx; color: #1f2329; }
+.coupon-none {
+  text-align: center;
+  padding: 26rpx;
+  margin-bottom: 20rpx;
+  color: #86909c;
+  font-size: 27rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+.coupon-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+  border: 2rpx solid transparent;
+}
+.coupon-item.active { border-color: #ff7d00; }
+.coupon-left {
+  width: 180rpx;
+  padding: 32rpx 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff7d00, #ffa94d);
+}
+.coupon-symbol { font-size: 26rpx; color: #fff; font-weight: 600; }
+.coupon-amount { font-size: 52rpx; font-weight: 700; color: #fff; }
+.coupon-divider { width: 0; align-self: stretch; border-left: 2rpx dashed #e5e6eb; }
+.coupon-right { flex: 1; display: flex; flex-direction: column; padding: 24rpx 20rpx; }
+.coupon-name { font-size: 28rpx; font-weight: 600; color: #1f2329; }
+.coupon-desc { margin-top: 4rpx; font-size: 22rpx; color: #ff7d00; }
 .coupon-expire { margin-top: 6rpx; font-size: 22rpx; color: #86909c; }
+.coupon-pick {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  border: 2rpx solid #c9cdd4;
+  margin-right: 20rpx;
+}
+.coupon-pick.on {
+  border-color: #ff7d00;
+  background: #ff7d00;
+  box-shadow: inset 0 0 0 6rpx #fff;
+}
 </style>

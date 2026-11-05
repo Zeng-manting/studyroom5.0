@@ -125,7 +125,7 @@ function fmtTime(t) {
 }
 
 async function loadSummary() {
-  const { data } = await financeSummary({ beginDate: range.value[0], endDate: range.value[1] })
+  const data = await financeSummary({ beginDate: range.value[0], endDate: range.value[1] })
   summary.value = data
   await nextTick()
   if (!trendChart && trendChartRef.value) trendChart = echarts.init(trendChartRef.value)
@@ -147,13 +147,13 @@ async function loadSummary() {
 async function loadRefunds() {
   loading.value = true
   try {
-    const { data } = await refundPage({
+    const page = await refundPage({
       beginDate: range.value[0], endDate: range.value[1],
       type: query.type, keyword: query.keyword,
       page: query.page, size: query.size
     })
-    refunds.value = data.list || []
-    total.value = Number(data.total || 0)
+    refunds.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }

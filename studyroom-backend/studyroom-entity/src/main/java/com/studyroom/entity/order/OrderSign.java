@@ -72,7 +72,4 @@ public class OrderSign implements Serializable {
 
     @ApiModelProperty("客户端IP")
     private String clientIp;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
 }

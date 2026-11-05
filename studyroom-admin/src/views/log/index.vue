@@ -106,7 +106,7 @@ function fmtTime(t) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await pageLogs({
+    const page = await pageLogs({
       beginDate: range.value?.[0] || null,
       endDate: range.value?.[1] || null,
       username: query.username || null,
@@ -115,8 +115,8 @@ async function load() {
       page: query.page,
       size: query.size
     })
-    list.value = data.list || []
-    total.value = Number(data.total || 0)
+    list.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }

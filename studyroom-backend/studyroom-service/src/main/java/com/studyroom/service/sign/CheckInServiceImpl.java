@@ -79,6 +79,7 @@ public class CheckInServiceImpl implements CheckInService {
         if (!StringUtils.hasText(dto.getQrcode()) || !dto.getQrcode().startsWith(QR_PREFIX)) {
             return fail(userId, null, null, null, null, "二维码格式不正确，请扫描门店签到码", null);
         }
+        // 生成方格式：SR-SIGN:{AES密文Base64}:{HMAC签名Base64}
         String[] parts = dto.getQrcode().substring(QR_PREFIX.length()).split(":");
         if (parts.length != 2) {
             return fail(userId, null, null, null, null, "二维码格式不正确，请扫描门店签到码", null);

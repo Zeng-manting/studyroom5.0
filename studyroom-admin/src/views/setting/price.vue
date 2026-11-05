@@ -382,15 +382,13 @@ async function loadTab() {
   loading.value = true
   try {
     if (tab.value === 'pkg') {
-      const { data } = await listPackages()
-      packages.value = data || []
+      packages.value = (await listPackages()) || []
     } else if (tab.value === 'rule') {
-      const [ruleRes, typeRes] = await Promise.all([listPriceRules(), listSeatTypes()])
-      rules.value = ruleRes.data || []
-      seatTypes.value = typeRes.data || []
+      const [rulesData, typesData] = await Promise.all([listPriceRules(), listSeatTypes()])
+      rules.value = rulesData || []
+      seatTypes.value = typesData || []
     } else {
-      const { data } = await listSeatTypes()
-      seatTypes.value = data || []
+      seatTypes.value = (await listSeatTypes()) || []
     }
   } finally {
     loading.value = false

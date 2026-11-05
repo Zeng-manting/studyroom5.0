@@ -24,8 +24,9 @@ public interface AdminNoticeService {
      *
      * @param type   类型：1门店规则 2停业通知 3活动公告 4其他（空=全部）
      * @param status 状态：0草稿 1已发布 2已下架（空=全部）
+     * @param keyword 标题关键字（模糊匹配，空=不限）
      */
-    PageResult<AdminNoticeVO> pageNotices(Integer type, Integer status, long page, long size);
+    PageResult<AdminNoticeVO> pageNotices(Integer type, Integer status, String keyword, long page, long size);
 
     /**
      * 公告详情（FR-AD-015 编辑回显）：含富文本正文与附件列表

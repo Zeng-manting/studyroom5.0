@@ -207,9 +207,9 @@ const orderTag = (status) =>
 const load = async () => {
   loading.value = true
   try {
-    const { data } = await pageUsers(query)
-    list.value = data.list || []
-    total.value = Number(data.total || 0)
+    const page = await pageUsers(query)
+    list.value = page.list || []
+    total.value = Number(page.total || 0)
   } finally {
     loading.value = false
   }
@@ -232,8 +232,8 @@ const openDetail = async (row) => {
   detailLoading.value = true
   detail.value = null
   try {
-    const { data } = await getUserDetail(row.id)
-    detail.value = data
+    const rowDetail = await getUserDetail(row.id)
+    detail.value = rowDetail
   } finally {
     detailLoading.value = false
   }
