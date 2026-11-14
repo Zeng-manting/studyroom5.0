@@ -17,8 +17,17 @@
       <!-- 规则列表 -->
       <el-col :span="14">
         <el-card shadow="never" v-loading="loading">
-          <template #header>闭店规则（FR-AD-005）</template>
-          <el-table :data="rules" stripe size="small">
+          <template #header>
+            <div class="rule-header">
+              <span>时段黑名单规则（FR-AD-005）</span>
+              <el-radio-group v-model="ruleFilter" size="small">
+                <el-radio-button label="all">全部</el-radio-button>
+                <el-radio-button label="active">生效中</el-radio-button>
+                <el-radio-button label="expired">已过期</el-radio-button>
+              </el-radio-group>
+            </div>
+          </template>
+          <el-table :data="displayRules" stripe size="small">
             <el-table-column label="类型" width="72">
               <template #default="{ row }">
                 <el-tag :type="row.type === 1 ? 'primary' : 'warning'" size="small">
@@ -38,9 +47,10 @@
               </template>
             </el-table-column>
             <el-table-column prop="reason" label="原因" min-width="110" show-overflow-tooltip />
-            <el-table-column label="状态" width="72">
+            <el-table-column label="状态" width="84">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+                <el-tag v-if="isExpired(row)" type="info" size="small">已过期</el-tag>
+                <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">
                   {{ row.statusDesc }}
                 </el-tag>
               </template>
@@ -52,7 +62,7 @@
               </template>
             </el-table-column>
           </el-table>
-          <el-empty v-if="!loading && !rules.length" description="暂无闭店规则" :image-size="60" />
+          <el-empty v-if="!loading && !displayRules.length" description="暂无时段黑名单规则" :image-size="60" />
         </el-card>
       </el-col>
 
@@ -77,11 +87,13 @@
               class="cal-day"
               :class="{
                 empty: !cell,
+                past: cell && cell.date < todayStr,
                 closed: cell && cell.allDayClosed,
                 partial: cell && !cell.allDayClosed && cell.slots.length,
                 today: cell && cell.today
               }"
-              :title="cell ? dayTitle(cell) : ''"
+              :title="cell ? (cell.date < todayStr ? '过去日期不可设置时段黑名单' : dayTitle(cell)) : ''"
+              @click="cell && cell.date >= todayStr && openAddForDate(cell)"
             >
               <span v-if="cell" class="day-num">{{ cell.date.slice(8) }}</span>
               <span v-if="cell && cell.allDayClosed" class="day-mark">闭</span>
@@ -91,16 +103,17 @@
             </div>
           </div>
           <div class="legend">
-            <span class="legend-item"><i class="dot closed-dot" />全天闭店</span>
-            <span class="legend-item"><i class="dot partial-dot" />部分时段</span>
+            <span class="legend-item"><i class="dot closed-dot" />全天不可预约</span>
+            <span class="legend-item"><i class="dot partial-dot" />部分时段不可预约</span>
             <span class="legend-item"><i class="dot today-dot" />今日</span>
           </div>
+          <div class="cal-hint">点击今天及之后的日期可为该日期新增时段黑名单规则</div>
         </el-card>
       </el-col>
     </el-row>
 
     <!-- 规则编辑弹窗 -->
-    <el-dialog v-model="editVisible" :title="form.id ? '编辑闭店规则' : '新增闭店规则'" width="480px" destroy-on-close>
+    <el-dialog v-model="editVisible" :title="form.id ? '编辑时段黑名单规则' : '新增时段黑名单规则'" width="480px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="规则类型" prop="type">
           <el-radio-group v-model="form.type">
@@ -114,9 +127,10 @@
           </el-checkbox-group>
         </el-form-item>
         <el-form-item v-if="form.type === 2" label="生效日期" prop="singleDate">
-          <el-date-picker v-model="form.singleDate" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" />
+          <el-date-picker v-model="form.singleDate" type="date" value-format="YYYY-MM-DD"
+                          placeholder="选择日期" :disabled-date="isPastDate" />
         </el-form-item>
-        <el-form-item label="闭店时段">
+        <el-form-item label="禁用时段">
           <div class="time-row">
             <el-time-select v-model="form.startTime" start="00:00" step="00:30" end="23:30" placeholder="开始（空=全天）" />
             <span class="muted">至</span>
@@ -154,6 +168,23 @@ import {
 
 const WEEK_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
+/** 本地日期 yyyy-MM-dd（避免 toISOString 的时区偏移） */
+function fmtDate(d) {
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+const todayStr = fmtDate(new Date())
+
+/** 单次规则的日期选择：禁选今天之前的日期 */
+function isPastDate(d) {
+  const t = new Date(d)
+  t.setHours(0, 0, 0, 0)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return t.getTime() < now.getTime()
+}
+
 const stores = ref([])
 const storeId = ref(null)
 const loading = ref(false)
@@ -165,6 +196,20 @@ const formRef = ref(null)
 const month = ref(null) // 'YYYY-MM'
 const calendar = ref([])
 const calLoading = ref(false)
+
+/** 规则筛选：all 全部 / active 生效中 / expired 已过期 */
+const ruleFilter = ref('all')
+
+/** 单次规则且日期早于今天视为已过期（周期性规则不会过期） */
+function isExpired(row) {
+  return row.type === 2 && row.singleDate && row.singleDate < todayStr
+}
+
+const displayRules = computed(() => {
+  if (ruleFilter.value === 'expired') return rules.value.filter(isExpired)
+  if (ruleFilter.value === 'active') return rules.value.filter(r => !isExpired(r))
+  return rules.value
+})
 
 const weekSelection = ref([])
 
@@ -240,6 +285,12 @@ function shiftMonth(delta) {
   loadCalendar()
 }
 
+function openAddForDate(cell) {
+  openEdit(null)
+  form.type = 2
+  form.singleDate = cell.date
+}
+
 function openEdit(row) {
   if (row) {
     Object.assign(form, {
@@ -296,7 +347,7 @@ async function onSave() {
 
 async function onDelete(row) {
   try {
-    await ElMessageBox.confirm('确认删除该闭店规则？删除后对应时段立即恢复可预约。', '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm('确认删除该时段黑名单规则？删除后对应时段立即恢复可预约。', '删除确认', { type: 'warning' })
   } catch (e) {
     return
   }
@@ -306,7 +357,7 @@ async function onDelete(row) {
 }
 
 function dayTitle(cell) {
-  if (cell.allDayClosed) return '全天闭店'
+  if (cell.allDayClosed) return '全天不可预约'
   if (cell.slots.length) {
     return cell.slots.map(s => `${s.startTime.slice(0, 5)}-${s.endTime.slice(0, 5)} ${s.reason || ''}`).join('\n')
   }
@@ -322,6 +373,11 @@ onMounted(() => {
 <style scoped>
 .filter-card {
   margin-bottom: 12px;
+}
+.rule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .selector {
   display: flex;
@@ -372,6 +428,13 @@ onMounted(() => {
 .cal-day.empty {
   border: none;
 }
+.cal-day:not(.empty):not(.past) {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-day:not(.empty):not(.closed):not(.partial):hover {
+  background: #ecf5ff;
+}
 .cal-day.closed {
   background: #fef0f0;
   border-color: #fbc4c4;
@@ -379,6 +442,14 @@ onMounted(() => {
 .cal-day.partial {
   background: #fdf6ec;
   border-color: #f3d19e;
+}
+.cal-day.past {
+  background: #f5f7fa;
+  border-color: #ebeef5;
+  color: #c0c4cc;
+}
+.cal-day.past .day-mark {
+  color: #c0c4cc;
 }
 .cal-day.today {
   border: 2px solid #409eff;
@@ -404,6 +475,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.cal-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
 }
 .dot {
   width: 10px;

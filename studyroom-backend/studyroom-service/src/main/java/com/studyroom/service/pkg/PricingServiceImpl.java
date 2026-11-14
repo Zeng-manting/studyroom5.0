@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
@@ -47,15 +48,30 @@ public class PricingServiceImpl implements PricingService {
 
     @Override
     public BigDecimal calcOriginalPrice(Package pkg, Long seatTypeId, LocalDateTime startTime) {
-        BigDecimal price = pkg.getPrice();
-        PriceRule rule = matchRule(pkg.getId(), seatTypeId, startTime.toLocalTime());
+        return applyRule(pkg.getPrice(), pkg.getId(), seatTypeId, startTime.toLocalTime());
+    }
+
+    @Override
+    public BigDecimal calcCustomPrice(Package pkg, Long seatTypeId,
+                                      LocalDateTime startTime, LocalDateTime endTime) {
+        long minutes = Duration.between(startTime, endTime).toMinutes();
+        BigDecimal hours = BigDecimal.valueOf(minutes)
+                .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+        BigDecimal base = pkg.getPrice().multiply(hours).setScale(2, RoundingMode.HALF_UP);
+        return applyRule(base, pkg.getId(), seatTypeId, startTime.toLocalTime());
+    }
+
+    /**
+     * 应用加价规则：最终价 = 基础价 × extra_ratio + extra_price
+     */
+    private BigDecimal applyRule(BigDecimal base, Long packageId, Long seatTypeId, LocalTime start) {
+        PriceRule rule = matchRule(packageId, seatTypeId, start);
         if (rule == null) {
-            return price;
+            return base.setScale(2, RoundingMode.HALF_UP);
         }
-        // 最终价 = 套餐价 × extra_ratio + extra_price（FR-AD-025）
         BigDecimal ratio = rule.getExtraRatio() == null ? BigDecimal.ONE : rule.getExtraRatio();
         BigDecimal extra = rule.getExtraPrice() == null ? BigDecimal.ZERO : rule.getExtraPrice();
-        return price.multiply(ratio).add(extra).setScale(2, RoundingMode.HALF_UP);
+        return base.multiply(ratio).add(extra).setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override
@@ -156,6 +172,7 @@ public class PricingServiceImpl implements PricingService {
             case 2: return "日卡";
             case 3: return "周卡";
             case 4: return "月卡";
+            case 5: return "自定义计时";
             default: return "未知";
         }
     }

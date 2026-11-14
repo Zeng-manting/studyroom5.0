@@ -27,16 +27,17 @@ public interface OrderService {
      * @param seatId       座位ID
      * @param packageId    套餐ID
      * @param startTime    开始时间
+     * @param customEndTime 自定义结束时间（可空，为空则按套餐时长计算）
      * @param couponClaimId 优惠券领取记录ID（可空）
      */
     OrderPreviewVO preview(Long userId, Long storeId, Long seatId, Long packageId,
-                           LocalDateTime startTime, Long couponClaimId);
+                           LocalDateTime startTime, LocalDateTime customEndTime, Long couponClaimId);
 
     /**
      * 用户可用优惠券列表（FR-UC-024，确认页选择）
      */
     List<UsableCouponVO> usableCoupons(Long userId, Long storeId, Long seatId, Long packageId,
-                                       LocalDateTime startTime);
+                                       LocalDateTime startTime, LocalDateTime customEndTime);
 
     /**
      * 创建订单（FR-UC-018 下单原子锁座）

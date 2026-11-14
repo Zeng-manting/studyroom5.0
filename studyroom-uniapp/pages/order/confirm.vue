@@ -149,6 +149,8 @@ const storeId = ref(null)
 const seatId = ref(null)
 const packageId = ref(null)
 const startTime = ref('')
+/** 自定义时段的结束时间（不买套餐时由上游带入） */
+const endTime = ref('')
 
 const preview = ref(null)
 const coupons = ref([])
@@ -172,6 +174,7 @@ async function loadPreview() {
     seatId: seatId.value,
     packageId: packageId.value,
     startTime: startTime.value,
+    endTime: endTime.value || undefined,
     couponClaimId: coupon.value ? coupon.value.claimId : undefined
   })
 }
@@ -181,7 +184,8 @@ async function loadCoupons() {
     storeId: storeId.value,
     seatId: seatId.value,
     packageId: packageId.value,
-    startTime: startTime.value
+    startTime: startTime.value,
+    endTime: endTime.value || undefined
   })
 }
 
@@ -207,6 +211,7 @@ async function submitPay() {
       seatId: seatId.value,
       packageId: packageId.value,
       startTime: startTime.value,
+      endTime: endTime.value || null,
       couponClaimId: coupon.value ? coupon.value.claimId : null
     })
     // 2. FR-UC-023 支付
@@ -234,6 +239,7 @@ onMounted(async () => {
   seatId.value = cur.options.seatId || cur.options.seatid
   packageId.value = cur.options.packageId || cur.options.packageid
   startTime.value = decodeURIComponent(cur.options.startTime || cur.options.starttime || '')
+  endTime.value = decodeURIComponent(cur.options.endTime || cur.options.endtime || '')
 
   await Promise.all([loadPreview(), loadCoupons()])
 })

@@ -212,7 +212,7 @@ public class AdminStoreServiceImpl implements AdminStoreService {
                 slot.setReason(rule.getReason());
                 day.getSlots().add(slot);
             }
-            if (!day.getAllDayClosed() && day.getSlots().isEmpty()) {
+            if (!Boolean.TRUE.equals(day.getAllDayClosed()) && day.getSlots().isEmpty()) {
                 day.setAllDayClosed(false);
             }
             days.add(day);

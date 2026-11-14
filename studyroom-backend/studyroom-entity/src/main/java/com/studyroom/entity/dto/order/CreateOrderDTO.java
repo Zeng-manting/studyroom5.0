@@ -33,6 +33,9 @@ public class CreateOrderDTO implements Serializable {
     @ApiModelProperty(value = "预约开始时间（yyyy-MM-dd HH:mm，30分钟粒度）", required = true)
     private String startTime;
 
+    @ApiModelProperty("自定义结束时间（yyyy-MM-dd HH:mm，不买套餐时必传，30分钟粒度且不可跨天）")
+    private String endTime;
+
     @ApiModelProperty("优惠券领取记录ID（coupon_claim.id，不使用不传）")
     private Long couponClaimId;
 

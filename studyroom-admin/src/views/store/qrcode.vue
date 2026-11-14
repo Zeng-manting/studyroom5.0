@@ -168,11 +168,35 @@ function fmt(t) {
 
 /** 复制签到码文本到剪贴板 */
 async function onCopyCode() {
+  const text = qrData.value.code
+  // 优先使用 Clipboard API（仅 HTTPS / localhost 等安全上下文可用）
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      ElMessage.success('签到码已复制')
+      return
+    } catch {
+      // 权限被拒或 iframe 限制，走降级方案
+    }
+  }
+  // 降级：临时 textarea + execCommand，兼容局域网 HTTP 访问
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.top = '-9999px'
+  document.body.appendChild(ta)
+  ta.select()
+  let ok = false
   try {
-    await navigator.clipboard.writeText(qrData.value.code)
-    ElMessage.success('签到码已复制')
+    ok = document.execCommand('copy')
   } catch {
-    ElMessage.warning('复制失败，请手动选择文本复制')
+    ok = false
+  }
+  document.body.removeChild(ta)
+  if (ok) {
+    ElMessage.success('签到码已复制')
+  } else {
+    ElMessage.warning('浏览器不允许自动复制，请手动选中签到码文本后按 Ctrl+C')
   }
 }
 

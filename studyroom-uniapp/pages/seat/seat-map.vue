@@ -5,8 +5,9 @@
     <view class="info-card">
       <view class="info-row">
         <view class="info-left">
-          <text class="info-label">开始时间</text>
+          <text class="info-label">{{ customEnd ? '预约时段' : '开始时间' }}</text>
           <text class="info-time">{{ startTime }}</text>
+          <text v-if="customEnd" class="info-end">至 {{ customEndLabel }}</text>
         </view>
         <view class="info-pkg" v-if="packageInfo">
           <text class="info-pkg-name">{{ packageInfo.name }}</text>
@@ -66,7 +67,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import dayjs from 'dayjs'
 import { getSeatMap, getPackageList } from '@/api/store'
 
@@ -74,19 +75,25 @@ const storeId = ref(null)
 const startTime = ref('')
 const packageId = ref(null)
 const packageInfo = ref(null)
+/** 自定义时段的结束时间（不买套餐时由门店页带入） */
+const customEnd = ref('')
 
 const seatMap = ref(null)
 const selectedSeat = ref(null)
+
+const customEndLabel = computed(() =>
+  customEnd.value ? dayjs(customEnd.value, 'YYYY-MM-DD HH:mm').format('MM-DD HH:mm') : '')
 
 function seatTypeName(typeId) {
   const t = (seatMap.value && seatMap.value.seatTypes || []).find(x => x.id === typeId)
   return t ? t.name : ''
 }
 
-/** 计算套餐结束时间（座位图查询窗口） */
+/** 计算结束时间（座位图查询窗口）：自定义时段直接取用户选择，否则按套餐时长推算 */
 function calcEndTime() {
-  const p = packageInfo.value
   const start = dayjs(startTime.value, 'YYYY-MM-DD HH:mm')
+  if (customEnd.value) return dayjs(customEnd.value, 'YYYY-MM-DD HH:mm')
+  const p = packageInfo.value
   if (!p) return start.add(2, 'hour')
   switch (p.unit) {
     case 'hour': return start.add(p.durationValue, 'hour')
@@ -108,12 +115,14 @@ function onPickSeat(seat) {
 
 function goConfirm() {
   if (!selectedSeat.value) return
-  uni.navigateTo({
-    url: `/pages/order/confirm?storeId=${storeId.value}` +
-      `&seatId=${selectedSeat.value.id}` +
-      `&packageId=${packageId.value}` +
-      `&startTime=${encodeURIComponent(startTime.value)}`
-  })
+  let url = `/pages/order/confirm?storeId=${storeId.value}` +
+    `&seatId=${selectedSeat.value.id}` +
+    `&packageId=${packageId.value}` +
+    `&startTime=${encodeURIComponent(startTime.value)}`
+  if (customEnd.value) {
+    url += `&endTime=${encodeURIComponent(customEnd.value)}`
+  }
+  uni.navigateTo({ url })
 }
 
 onMounted(async () => {
@@ -122,6 +131,7 @@ onMounted(async () => {
   storeId.value = cur.options.storeId || cur.options.storeid
   packageId.value = cur.options.packageId || cur.options.packageid
   startTime.value = decodeURIComponent(cur.options.startTime || cur.options.starttime || '')
+  customEnd.value = decodeURIComponent(cur.options.endTime || cur.options.endtime || '')
 
   const pkgs = await getPackageList()
   packageInfo.value = (pkgs || []).find(p => String(p.id) === String(packageId.value))
@@ -151,6 +161,7 @@ onMounted(async () => {
 .info-left { display: flex; flex-direction: column; gap: 8rpx; }
 .info-label { font-size: 22rpx; color: #86909c; }
 .info-time { font-size: 34rpx; font-weight: 700; color: #1f2329; }
+.info-end { font-size: 24rpx; color: #4e5969; }
 .info-pkg {
   background: linear-gradient(135deg, #4a7cf7, #6b96ff);
   border-radius: 999rpx;

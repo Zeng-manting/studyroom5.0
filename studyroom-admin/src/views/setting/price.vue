@@ -125,13 +125,15 @@
             <el-option label="日卡" :value="2" />
             <el-option label="周卡" :value="3" />
             <el-option label="月卡" :value="4" />
+            <el-option label="自定义时长（小时单价）" :value="5" />
           </el-select>
         </el-form-item>
         <el-form-item :label="durationLabel" required>
-          <el-input-number v-model="pkgForm.durationValue" :min="1" />
+          <el-input-number v-model="pkgForm.durationValue" :min="1" :disabled="pkgForm.type !== 1" />
         </el-form-item>
-        <el-form-item label="售价（元）" required>
+        <el-form-item :label="pkgForm.type === 5 ? '小时单价（元/小时）' : '售价（元）'" required>
           <el-input-number v-model="pkgForm.price" :min="0" :precision="2" />
+          <span v-if="pkgForm.type === 5" class="tip">用户自定义时段按「单价 × 实际时长」计费</span>
         </el-form-item>
         <el-form-item label="划线原价">
           <el-input-number v-model="pkgForm.originalPrice" :min="0" :precision="2" />
@@ -244,11 +246,12 @@ const seatTypes = ref([])
 const pkgVisible = ref(false)
 const pkgForm = reactive({})
 const durationLabel = computed(() => {
-  const labels = { 1: '时长（小时）', 2: '时长（天）', 3: '时长（周）', 4: '时长（月）' }
+  const labels = { 1: '时长（小时）', 2: '时长（天）', 3: '时长（周）', 4: '时长（月）', 5: '计费单位（小时）' }
   return labels[pkgForm.type] || '时长'
 })
 
 function durationText(row) {
+  if (row.packageType === 5) return '按实际时长计费'
   return `${row.durationValue} ${unitText(row.unit)}`
 }
 
@@ -258,9 +261,9 @@ function unitText(unit) {
 }
 
 function onPkgTypeChange(type) {
-  pkgForm.unit = { 1: 'hour', 2: 'day', 3: 'week', 4: 'month' }[type]
-  if ([2, 3, 4].includes(type)) {
-    pkgForm.durationValue = { 2: 1, 3: 1, 4: 1 }[type]
+  pkgForm.unit = { 1: 'hour', 2: 'day', 3: 'week', 4: 'month', 5: 'hour' }[type]
+  if ([2, 3, 4, 5].includes(type)) {
+    pkgForm.durationValue = 1
   }
 }
 

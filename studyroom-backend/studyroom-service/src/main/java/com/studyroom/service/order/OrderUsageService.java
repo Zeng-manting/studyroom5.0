@@ -44,4 +44,13 @@ public interface OrderUsageService {
      * @return true 表示本次任务实际完成结算（幂等：已恢复/已结算返回 false）
      */
     boolean settlePauseTimeout(Long orderId, Long pauseId);
+
+    /**
+     * 预约到期自动结算（FR-UC-034 定时兜底）
+     * <p>已到预约结束时间仍处于「使用中」的订单自动结算：按预约结束时间计为实际结束，
+     * 座位转打扫中，避免用户忘记点「结束使用」导致座位长期被占用。</p>
+     *
+     * @return true 表示本次实际完成结算（非进行中/未到期/已被结算返回 false）
+     */
+    boolean settleExpired(Long orderId);
 }

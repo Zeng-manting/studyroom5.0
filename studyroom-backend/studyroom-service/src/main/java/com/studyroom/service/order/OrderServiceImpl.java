@@ -97,16 +97,17 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderPreviewVO preview(Long userId, Long storeId, Long seatId, Long packageId,
-                                  LocalDateTime startTime, Long couponClaimId) {
+                                  LocalDateTime startTime, LocalDateTime customEndTime, Long couponClaimId) {
         Seat seat = loadSeat(storeId, seatId);
         Package pkg = loadPackage(packageId);
         Store store = loadStore(storeId);
         SeatType seatType = seatTypeMapper.selectById(seat.getSeatTypeId());
 
-        LocalDateTime endTime = pricingService.calcEndTime(pkg, startTime);
-        // 计费：原价（含加价规则）
-        BigDecimal originalPrice = pricingService.calcOriginalPrice(pkg, seat.getSeatTypeId(), startTime);
-        BigDecimal discountAmount = packageDiscount(pkg);
+        boolean custom = customEndTime != null;
+        LocalDateTime endTime = resolveEndTime(pkg, startTime, customEndTime);
+        // 计费：原价（含加价规则）；自定义时段按小时单价 × 实际时长
+        BigDecimal originalPrice = calcPrice(pkg, seat.getSeatTypeId(), startTime, endTime, custom);
+        BigDecimal discountAmount = custom ? BigDecimal.ZERO : packageDiscount(pkg);
         BigDecimal amountForCoupon = originalPrice.subtract(discountAmount);
 
         OrderPreviewVO vo = new OrderPreviewVO();
@@ -115,7 +116,8 @@ public class OrderServiceImpl implements OrderService {
         vo.setSeatNo(seat.getSeatNo());
         vo.setSeatTypeName(seatType == null ? "" : seatType.getName());
         vo.setPackageName(pkg.getName());
-        vo.setDurationDesc(pricingService.durationDesc(pkg));
+        vo.setDurationDesc(custom ? customDurationDesc(startTime, endTime)
+                : pricingService.durationDesc(pkg));
         vo.setStartTime(startTime);
         vo.setEndTime(endTime);
         vo.setOriginalPrice(originalPrice);
@@ -134,11 +136,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<UsableCouponVO> usableCoupons(Long userId, Long storeId, Long seatId, Long packageId,
-                                              LocalDateTime startTime) {
+                                              LocalDateTime startTime, LocalDateTime customEndTime) {
         Seat seat = loadSeat(storeId, seatId);
         Package pkg = loadPackage(packageId);
-        BigDecimal originalPrice = pricingService.calcOriginalPrice(pkg, seat.getSeatTypeId(), startTime);
-        BigDecimal amountForCoupon = originalPrice.subtract(packageDiscount(pkg));
+        boolean custom = customEndTime != null;
+        LocalDateTime endTime = resolveEndTime(pkg, startTime, customEndTime);
+        BigDecimal originalPrice = calcPrice(pkg, seat.getSeatTypeId(), startTime, endTime, custom);
+        BigDecimal amountForCoupon = originalPrice.subtract(custom ? BigDecimal.ZERO : packageDiscount(pkg));
         return couponService.listUsableCoupons(userId, amountForCoupon);
     }
 
@@ -160,9 +164,11 @@ public class OrderServiceImpl implements OrderService {
         // FR-UC-054 信用限制拦截：限制期内禁止下单并提示原因（到期自动懒恢复）
         creditService.checkOrderAllowed(userId);
         LocalDateTime startTime = parseAndValidateTime(dto.getStartTime());
+        boolean custom = dto.getEndTime() != null && !dto.getEndTime().trim().isEmpty();
+        LocalDateTime customEndTime = custom ? parseEndTime(dto.getEndTime()) : null;
         Seat seat = loadSeat(dto.getStoreId(), dto.getSeatId());
         Package pkg = loadPackage(dto.getPackageId());
-        LocalDateTime endTime = pricingService.calcEndTime(pkg, startTime);
+        LocalDateTime endTime = resolveEndTime(pkg, startTime, customEndTime);
 
         // FR-UC-020 黑名单校验（后端兜底，前端已置灰）
         if (storeService.isBlocked(dto.getStoreId(), startTime.toLocalDate(),
@@ -186,9 +192,9 @@ public class OrderServiceImpl implements OrderService {
                 throw new BusinessException(ResultCode.BUSINESS_ERROR, "您在该时段已有预约，请先取消原有预约");
             }
 
-            // 计费
-            BigDecimal originalPrice = pricingService.calcOriginalPrice(pkg, seat.getSeatTypeId(), startTime);
-            BigDecimal discountAmount = packageDiscount(pkg);
+            // 计费（自定义时段按小时单价 × 实际时长）
+            BigDecimal originalPrice = calcPrice(pkg, seat.getSeatTypeId(), startTime, endTime, custom);
+            BigDecimal discountAmount = custom ? BigDecimal.ZERO : packageDiscount(pkg);
             BigDecimal amountForCoupon = originalPrice.subtract(discountAmount);
 
             // 事务：绑券 + 落库（锁内提交后释放锁，无并发窗口）
@@ -513,6 +519,66 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ResultCode.PARAM_ERROR, "仅支持预约未来 30 天内的时段");
         }
         return start;
+    }
+
+    /**
+     * 解析自定义结束时间（不校验"必须晚于当前时间"，由 resolveEndTime 校验区间）
+     */
+    private LocalDateTime parseEndTime(String time) {
+        try {
+            return LocalDateTime.parse(time, TIME_FORMATTER);
+        } catch (Exception e) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "结束时间格式错误，应为 yyyy-MM-dd HH:mm");
+        }
+    }
+
+    /**
+     * 计算预约结束时间：customEndTime 非空 → 自定义时段，否则按套餐时长推算
+     */
+    private LocalDateTime resolveEndTime(Package pkg, LocalDateTime startTime, LocalDateTime customEndTime) {
+        if (customEndTime == null) {
+            return pricingService.calcEndTime(pkg, startTime);
+        }
+        if (!customEndTime.isAfter(startTime)) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "结束时间必须晚于开始时间");
+        }
+        long minutes = Duration.between(startTime, customEndTime).toMinutes();
+        if (minutes < 30) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "自定义时段最短 30 分钟");
+        }
+        if (minutes > 24 * 60) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "自定义时段单次最长 24 小时");
+        }
+        if (customEndTime.getMinute() % 30 != 0 || customEndTime.getSecond() != 0) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "结束时间须为 30 分钟粒度（如 10:00 / 10:30）");
+        }
+        if (!customEndTime.toLocalDate().equals(startTime.toLocalDate())) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "自定义时段不可跨天，请分两次预约");
+        }
+        return customEndTime;
+    }
+
+    /**
+     * 计价：自定义时段按小时单价 × 实际时长，套餐按套餐价
+     */
+    private BigDecimal calcPrice(Package pkg, Long seatTypeId, LocalDateTime startTime,
+                                 LocalDateTime endTime, boolean custom) {
+        return custom
+                ? pricingService.calcCustomPrice(pkg, seatTypeId, startTime, endTime)
+                : pricingService.calcOriginalPrice(pkg, seatTypeId, startTime);
+    }
+
+    /**
+     * 自定义时段时长描述，如 "2小时30分钟"
+     */
+    private String customDurationDesc(LocalDateTime startTime, LocalDateTime endTime) {
+        long minutes = Duration.between(startTime, endTime).toMinutes();
+        long h = minutes / 60;
+        long m = minutes % 60;
+        if (h == 0) {
+            return m + "分钟";
+        }
+        return m == 0 ? h + "小时" : h + "小时" + m + "分钟";
     }
 
     private Seat loadSeat(Long storeId, Long seatId) {

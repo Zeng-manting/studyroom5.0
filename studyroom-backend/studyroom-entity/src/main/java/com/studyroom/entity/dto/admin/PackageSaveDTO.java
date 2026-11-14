@@ -31,8 +31,8 @@ public class PackageSaveDTO implements Serializable {
 
     @NotNull(message = "套餐类型不能为空")
     @Min(1)
-    @Max(4)
-    @ApiModelProperty(value = "类型：1按小时 2日卡 3周卡 4月卡", required = true)
+    @Max(5)
+    @ApiModelProperty(value = "类型：1按小时 2日卡 3周卡 4月卡 5自定义时长（小时单价）", required = true)
     private Integer type;
 
     @NotNull(message = "时长值不能为空")

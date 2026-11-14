@@ -256,6 +256,7 @@ public class AdminPricingServiceImpl implements AdminPricingService {
             case 2: return "day";
             case 3: return "week";
             case 4: return "month";
+            case 5: return "hour";
             default: return "hour";
         }
     }
@@ -266,6 +267,7 @@ public class AdminPricingServiceImpl implements AdminPricingService {
             case 2: return "日卡";
             case 3: return "周卡";
             case 4: return "月卡";
+            case 5: return "自定义时长";
             default: return "未知";
         }
     }

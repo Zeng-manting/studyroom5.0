@@ -31,6 +31,19 @@ public interface PricingService {
     BigDecimal calcOriginalPrice(Package pkg, Long seatTypeId, LocalDateTime startTime);
 
     /**
+     * 自定义时段计价（不买套餐，按实际选择的起止时间计费）
+     * <p>以自定义套餐的售价作为小时单价，乘以实际时长（30 分钟粒度折算），
+     * 再叠加加价规则。</p>
+     *
+     * @param pkg        自定义套餐（type=5，price 为小时单价）
+     * @param seatTypeId 座位类型ID
+     * @param startTime  开始时间
+     * @param endTime    结束时间
+     * @return 原价
+     */
+    BigDecimal calcCustomPrice(Package pkg, Long seatTypeId, LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
      * 根据套餐计算预约结束时间
      * <p>按小时 → start + durationValue 小时；日/周/月卡 → start + N 天/周/月。</p>
      */

@@ -190,8 +190,18 @@ public class CheckInServiceImpl implements CheckInService {
                                      LocalDateTime now,
                                      java.math.BigDecimal latitude, java.math.BigDecimal longitude,
                                      Integer distance) {
+        // 提前到场：结束时间同步前移相同分钟数（保持预约总时长不变）
+        LocalDateTime adjustedEnd = order.getEndTime();
+        long earlyMinutes = 0;
+        if (now.isBefore(order.getStartTime())) {
+            earlyMinutes = java.time.Duration.between(now, order.getStartTime()).toMinutes();
+            if (earlyMinutes > 0) {
+                adjustedEnd = order.getEndTime().minusMinutes(earlyMinutes);
+            }
+        }
+
         // CAS：status 1→2（防重复签到 / 与爽约取消并发）
-        int rows = orderMapper.update(null, new LambdaUpdateWrapper<Orders>()
+        LambdaUpdateWrapper<Orders> signUpdate = new LambdaUpdateWrapper<Orders>()
                 .eq(Orders::getId, order.getId())
                 .eq(Orders::getStatus, Orders.STATUS_RESERVED)
                 .isNull(Orders::getSignTime)
@@ -199,7 +209,11 @@ public class CheckInServiceImpl implements CheckInService {
                 .set(Orders::getSignTime, now)
                 .set(Orders::getSignLatitude, latitude)
                 .set(Orders::getSignLongitude, longitude)
-                .set(Orders::getSignGpsDistance, distance));
+                .set(Orders::getSignGpsDistance, distance);
+        if (earlyMinutes > 0) {
+            signUpdate.set(Orders::getEndTime, adjustedEnd);
+        }
+        int rows = orderMapper.update(null, signUpdate);
         if (rows == 0) {
             throw new BusinessException("订单状态已变更（可能已签到或已取消），请刷新订单列表");
         }
@@ -232,14 +246,15 @@ public class CheckInServiceImpl implements CheckInService {
         int lateMinutes = late ? (int) java.time.Duration.between(order.getStartTime(), now).toMinutes() : 0;
 
         CheckInResultVO vo = buildBaseVO(order);
+        vo.setEndTime(adjustedEnd);
         vo.setSuccess(true);
         vo.setAppealable(false);
         vo.setLate(late);
         vo.setLateMinutes(lateMinutes);
         vo.setGpsDistance(distance);
         vo.setSignTime(now);
-        log.info("[CheckInService] FR-UC-031 签到成功: orderNo={}, late={}, distance={}m",
-                order.getOrderNo(), late, distance);
+        log.info("[CheckInService] FR-UC-031 签到成功: orderNo={}, late={}, earlyMinutes={}, endTime={}, distance={}m",
+                order.getOrderNo(), late, earlyMinutes, adjustedEnd, distance);
         return vo;
     }
 

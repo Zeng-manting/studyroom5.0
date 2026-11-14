@@ -166,7 +166,23 @@ public class OrderUsageServiceImpl implements OrderUsageService {
         // 暂停中结束：实际结束时间回退到暂停开始时刻（暂停期间未占用座位）
         LocalDateTime actualEnd = order.getPauseStartTime() != null
                 ? order.getPauseStartTime() : LocalDateTime.now();
-        return settle(order, actualEnd, false);
+        return settle(order, actualEnd, false, "用户提前离场");
+    }
+
+    /* ==================== FR-SY-002：预约到期自动结算 ==================== */
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean settleExpired(Long orderId) {
+        Orders order = orderMapper.selectById(orderId);
+        if (order == null || order.getStatus() != Orders.STATUS_IN_USE
+                || order.getEndTime() == null || order.getEndTime().isAfter(LocalDateTime.now())) {
+            return false;
+        }
+        // 以预约结束时间为实际结束时间结算（含暂停扣除，未使用部分按比例退差额）
+        settle(order, order.getEndTime(), true, "预约到期自动结算");
+        log.info("[OrderUsageService] FR-UC-034 预约到期自动结算完成: orderNo={}", order.getOrderNo());
+        return true;
     }
 
     /* ==================== FR-SY-002：暂停超时自动结算 ==================== */
@@ -214,6 +230,10 @@ public class OrderUsageServiceImpl implements OrderUsageService {
      * </ul>
      */
     private OrderUsageVO settle(Orders order, LocalDateTime actualEnd, boolean autoEnd) {
+        return settle(order, actualEnd, autoEnd, "暂停超时自动结算");
+    }
+
+    private OrderUsageVO settle(Orders order, LocalDateTime actualEnd, boolean autoEnd, String scene) {
         // 累计暂停分钟（含本次未闭合的暂停记录，按 pause_start→actualEnd 计）
         int pausedMinutes = orderPauseMapper.sumPausedMinutes(order.getId(), actualEnd);
 
@@ -264,8 +284,7 @@ public class OrderUsageServiceImpl implements OrderUsageService {
             // 退款比例 = 未使用分钟 / 预约分钟
             refundRecord.setRatio(BigDecimal.valueOf(unusedMinutes)
                     .divide(BigDecimal.valueOf(bookedMinutes), 2, RoundingMode.HALF_UP));
-            refundRecord.setRefundReason((autoEnd ? "暂停超时自动结算" : "用户提前离场")
-                    + "，实际使用" + actualDuration + "分钟，退未使用差额");
+            refundRecord.setRefundReason(scene + "，实际使用" + actualDuration + "分钟，退未使用差额");
             refundRecord.setStatus(1);
             refundRecord.setRefundTime(LocalDateTime.now());
             orderRefundMapper.insert(refundRecord);
@@ -284,14 +303,14 @@ public class OrderUsageServiceImpl implements OrderUsageService {
 
         // FR-UC-045 消息推送（离场结算结果；有退款时附 FR-UC-046 邮件兜底）
         messageService.sendOrderMessage(order.getUserId(),
-                autoEnd ? "暂停超时已自动结算" : "使用结束",
+                autoEnd ? scene : "使用结束",
                 "订单 " + order.getOrderNo() + " 已结算：实际使用 " + actualDuration + " 分钟"
                         + (refund.compareTo(BigDecimal.ZERO) > 0
                         ? "，退未使用差额 ¥" + refund + " 已退回账户余额。" : "。"),
                 order.getId());
         if (refund.compareTo(BigDecimal.ZERO) > 0) {
             emailService.sendRefundNotify(order.getUserId(), order.getOrderNo(), refund,
-                    (autoEnd ? "暂停超时自动结算" : "用户提前离场") + "退未使用差额");
+                    scene + "退未使用差额");
         }
 
         log.info("[OrderUsageService] FR-UC-034 结算完成: orderNo={}, used={}min, paused={}min, refund={}, autoEnd={}",
