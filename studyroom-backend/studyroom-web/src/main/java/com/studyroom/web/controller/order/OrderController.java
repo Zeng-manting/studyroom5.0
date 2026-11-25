@@ -90,7 +90,7 @@ public class OrderController {
             @ApiParam(value = "套餐ID", required = true) @RequestParam Long packageId,
             @ApiParam(value = "开始时间 yyyy-MM-dd HH:mm", required = true)
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime startTime,
-            @ApiParam("自定义结束时间 yyyy-MM-dd HH:mm（不买套餐时传，30分钟粒度）")
+            @ApiParam("自定义结束时间 yyyy-MM-dd HH:mm（不买套餐时传，分钟级）")
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm") LocalDateTime endTime,
             @ApiParam("优惠券领取记录ID（可空）") @RequestParam(required = false) Long couponClaimId) {
         return Result.ok(orderService.preview(user.getId(), storeId, seatId, packageId, startTime, endTime, couponClaimId));

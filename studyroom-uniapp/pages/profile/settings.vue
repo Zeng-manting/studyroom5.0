@@ -30,6 +30,8 @@
         <text>意见反馈</text><text class="arrow">›</text>
       </view>
     </view>
+
+    <button class="logout-btn" @click="onLogout">退出登录</button>
   </view>
 </template>
 
@@ -41,6 +43,11 @@
  */
 import { ref, onMounted } from 'vue'
 import { reportSubscribe } from '@/api/message'
+import { clearToken } from '@/utils/auth'
+import request from '@/utils/request'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
 
 const scenes = [
   { key: 'orderSuccess', label: '预约成功', desc: '支付成功后通知' },
@@ -117,6 +124,31 @@ function goPrivacy() {
 function goFeedback() {
   uni.navigateTo({ url: '/pages/feedback/index' })
 }
+
+/** 退出登录：服务端吊销 token，并清除本地登录态 */
+function onLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确认退出当前账号吗？',
+    confirmColor: '#f56c6c',
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        await request.post('/logout')
+      } catch (e) {
+        // 网络异常时仍允许退出本地登录态
+      }
+      clearToken()
+      userStore.$reset()
+      // #ifdef H5
+      uni.reLaunch({ url: '/pages/login/index' })
+      // #endif
+      // #ifndef H5
+      uni.reLaunch({ url: '/pages/index/index' })
+      // #endif
+    }
+  })
+}
 </script>
 
 <style scoped>
@@ -140,4 +172,12 @@ function goFeedback() {
 .cell:last-child { border-bottom: none; }
 .arrow { color: #b0b3ba; font-size: 32rpx; }
 .cache-size { font-size: 24rpx; color: #86909c; }
+.logout-btn {
+  margin-top: 32rpx;
+  background: #fff;
+  color: #f56c6c;
+  border-radius: 24rpx;
+  font-size: 30rpx;
+}
+.logout-btn::after { border: none; }
 </style>

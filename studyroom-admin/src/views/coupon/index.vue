@@ -299,7 +299,8 @@ function openGrant(row) {
 }
 
 async function submitGrant() {
-  const ids = grantUserIds.value.split(/[\s,，]+/).filter((s) => /^\d+$/.test(s)).map(Number)
+  // 用户 ID 为 19 位雪花 ID，必须全程按字符串传递，转 Number 会丢失精度
+  const ids = grantUserIds.value.split(/[\s,，]+/).filter((s) => /^\d+$/.test(s))
   if (!ids.length) return ElMessage.warning('请输入至少一个有效的用户 ID')
   granting.value = true
   try {

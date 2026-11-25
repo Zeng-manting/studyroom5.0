@@ -150,7 +150,9 @@ function onAction(action, o) {
 function confirmCancel(o) {
   uni.showModal({
     title: '取消订单',
-    content: '开始前 2 小时以上取消全额退款，2 小时内按比例退款，确认取消吗？',
+    content: o.status === 0
+      ? '订单尚未支付，取消不产生扣款，确认取消吗？'
+      : '提前 60 分钟以上取消全额退款，15～60 分钟退 90%，15 分钟内退 70%，确认取消吗？',
     confirmColor: '#e74c3c',
     success: async (res) => {
       if (!res.confirm) return

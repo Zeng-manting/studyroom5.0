@@ -36,7 +36,7 @@
 
     <view class="tips">
       <view class="tip">· 请在预约开始时间后 30 分钟内到店扫码签到，超时订单将自动取消并按比例退款（FR-UC-026）</view>
-      <view class="tip">· 开始前取消订单支持阶梯退款：提前 60 分钟以上全退（FR-UC-027）</view>
+      <view class="tip">· 开始前取消支持阶梯退款：提前 60 分钟以上全退，15～60 分钟退 90%，15 分钟内退 70%（FR-UC-027）</view>
     </view>
 
     <!-- 操作入口：扫码签到（FR-UC-028/029 模块6） -->
@@ -66,8 +66,8 @@ function goCheckIn() {
 }
 
 function goOrders() {
-  // 模块7（订单列表 FR-UC-035）上线后替换为订单列表页
-  uni.showToast({ title: '订单列表将在模块7上线', icon: 'none' })
+  // FR-UC-035 订单列表页
+  uni.navigateTo({ url: '/pages/order/list' })
 }
 
 function goHome() {

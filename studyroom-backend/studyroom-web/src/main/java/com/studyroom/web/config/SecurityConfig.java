@@ -82,6 +82,8 @@ public class SecurityConfig {
                 .formLogin().disable()
                 // 禁用 Basic Auth
                 .httpBasic().disable()
+                // 禁用 Spring Security 默认登出过滤器，避免拦截 CommonController 的 /logout
+                .logout().disable()
                 // 无状态 Session
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()

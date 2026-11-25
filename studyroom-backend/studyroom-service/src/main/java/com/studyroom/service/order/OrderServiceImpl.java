@@ -500,7 +500,7 @@ public class OrderServiceImpl implements OrderService {
     // ==================== 私有辅助 ====================
 
     /**
-     * 解析并校验开始时间（FR-UC-016 30 分钟粒度）
+     * 解析并校验开始时间（FR-UC-016 分钟级预约，前端按 5 分钟取整）
      */
     private LocalDateTime parseAndValidateTime(String time) {
         LocalDateTime start;
@@ -509,8 +509,8 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "时间格式错误，应为 yyyy-MM-dd HH:mm");
         }
-        if (start.getMinute() % 30 != 0 || start.getSecond() != 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "开始时间须为 30 分钟粒度（如 08:00 / 08:30）");
+        if (start.getSecond() != 0 || start.getNano() != 0) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "时间格式错误，应为 yyyy-MM-dd HH:mm");
         }
         if (!start.isAfter(LocalDateTime.now())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "开始时间必须晚于当前时间");
@@ -549,8 +549,8 @@ public class OrderServiceImpl implements OrderService {
         if (minutes > 24 * 60) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "自定义时段单次最长 24 小时");
         }
-        if (customEndTime.getMinute() % 30 != 0 || customEndTime.getSecond() != 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "结束时间须为 30 分钟粒度（如 10:00 / 10:30）");
+        if (customEndTime.getSecond() != 0 || customEndTime.getNano() != 0) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "结束时间格式错误，应为 yyyy-MM-dd HH:mm");
         }
         if (!customEndTime.toLocalDate().equals(startTime.toLocalDate())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "自定义时段不可跨天，请分两次预约");

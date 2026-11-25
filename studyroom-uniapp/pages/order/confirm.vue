@@ -98,6 +98,15 @@
           </view>
         </view>
       </view>
+
+      <!-- 退款规则：与后端阶梯退款口径一致（FR-UC-027） -->
+      <view class="card refund-card">
+        <view class="card-title">退款说明</view>
+        <view class="refund-line">· 开始前提前 60 分钟以上取消：全额退款</view>
+        <view class="refund-line">· 开始前 15～60 分钟取消：退款 90%</view>
+        <view class="refund-line">· 开始前 15 分钟内取消：退款 70%</view>
+        <view class="refund-line">· 退款退回账户余额，优惠券自动释放</view>
+      </view>
     </view>
 
     <view v-else class="loading">订单确认信息加载中...</view>
@@ -375,6 +384,10 @@ onMounted(async () => {
   box-shadow: 0 8rpx 20rpx rgba(74, 124, 247, 0.3);
 }
 .footer-btn.disabled { background: #e5e6eb; color: #a9aeb8; box-shadow: none; }
+
+/* ---------- 退款说明 ---------- */
+.refund-card { padding-bottom: 8rpx; }
+.refund-line { font-size: 22rpx; color: #86909c; line-height: 1.9; }
 
 .loading { padding: 120rpx 0; text-align: center; color: #86909c; font-size: 26rpx; }
 

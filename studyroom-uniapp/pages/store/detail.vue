@@ -41,49 +41,43 @@
         </view>
       </view>
 
-      <!-- 7 天日期条（FR-UC-016） -->
-      <view class="card">
-        <view class="card-title">选择日期</view>
-        <scroll-view scroll-x class="date-bar">
+      <!-- 预约面板：模式 → 日期 → 时长/套餐 → 起止时间 -->
+      <view class="card booking-card">
+        <view class="mode-tabs">
+          <view class="mode-tab" :class="{ active: billingMode === 'custom' }"
+                @click="switchMode('custom')">小时模式</view>
+          <view class="mode-tab" :class="{ active: billingMode === 'package' }"
+                @click="switchMode('package')">套餐模式</view>
+        </view>
+
+        <scroll-view scroll-x class="date-bar" :show-scrollbar="false">
           <view v-for="d in dateList" :key="d.value" class="date-item"
                 :class="{ active: d.value === selectedDate }" @click="selectDate(d.value)">
             <text class="date-week">{{ d.week }}</text>
             <text class="date-day">{{ d.label }}</text>
           </view>
         </scroll-view>
-      </view>
 
-      <!-- 时段选择（FR-UC-016 30分钟粒度 + FR-UC-020 黑名单置灰） -->
-      <view class="card">
-        <view class="card-title">选择开始时段</view>
-        <view v-if="blacklist && blacklist.allDayClosed" class="closed-tip">
-          当日全天闭店休息，请选择其他日期
-        </view>
-        <view v-else class="slot-grid">
-          <view v-for="s in timeSlots" :key="s.time" class="slot"
-                :class="{ disabled: s.disabled, active: s.time === selectedTime, past: s.past }"
-                @click="selectTime(s)">
-            {{ s.time }}
+        <block v-if="billingMode === 'custom'">
+          <view class="section-head">
+            <text>选择时长</text>
+            <text class="section-note">¥{{ customHourly }}/小时</text>
           </view>
-        </view>
-        <view class="slot-legend">
-          <text class="lg lg-ok">可选</text>
-          <text class="lg lg-grey">闭店/占用</text>
-          <text class="lg lg-past">已过</text>
-        </view>
-      </view>
+          <view v-if="customPkg" class="dur-grid">
+            <view v-for="d in durationOptions" :key="d.minutes" class="dur-item"
+                  :class="{ active: customMinutes === d.minutes, disabled: d.disabled }"
+                  @click="selectDuration(d)">
+              {{ d.label }}
+            </view>
+          </view>
+          <view v-else class="pkg-empty">门店暂未开放自定义时长</view>
+        </block>
 
-      <!-- 计费方式：套餐 / 自定义时长（FR-UC-019） -->
-      <view class="card">
-        <view class="card-title">计费方式</view>
-        <view class="mode-tabs">
-          <view class="mode-tab" :class="{ active: billingMode === 'package' }"
-                @click="switchMode('package')">按套餐</view>
-          <view class="mode-tab" :class="{ active: billingMode === 'custom' }"
-                @click="switchMode('custom')">自定义时长</view>
-        </view>
-
-        <block v-if="billingMode === 'package'">
+        <block v-else>
+          <view class="section-head">
+            <text>选择套餐</text>
+            <text class="section-note">按套餐固定时长计费</text>
+          </view>
           <view class="pkg-tabs">
             <view v-for="t in pkgTabs" :key="t.type" class="pkg-tab"
                   :class="{ active: activeTab === t.type }" @click="switchTab(t.type)">
@@ -96,7 +90,7 @@
                   @click="selectPackage(p)">
               <view class="pkg-info">
                 <view class="pkg-name">{{ p.name }}</view>
-                <view class="pkg-desc">{{ p.durationDesc }} · {{ p.description || '自习套餐' }}</view>
+                <view class="pkg-desc">{{ packageDurationText(p) }} · {{ p.description || '自习套餐' }}</view>
               </view>
               <view class="pkg-price">
                 <text class="pkg-now">¥{{ p.price }}</text>
@@ -107,30 +101,43 @@
           </view>
         </block>
 
-        <block v-else>
-          <view class="custom-tip">
-            按 {{ customHourly }} 元/小时计价，最短 30 分钟，最长 24 小时
+        <view class="time-section">
+          <view class="section-head">
+            <text>预约时间</text>
+            <text class="section-note">5分钟取整 · 30分钟起订</text>
           </view>
-          <view v-if="durationOptions.length" class="dur-grid">
-            <view v-for="d in durationOptions" :key="d.minutes" class="dur-item"
-                  :class="{ active: customMinutes === d.minutes, disabled: d.disabled }"
-                  @click="selectDuration(d)">
-              {{ d.label }}
+          <view v-if="blacklist && blacklist.allDayClosed" class="closed-tip">
+            当日全天闭店休息，请选择其他日期
+          </view>
+          <template v-else>
+            <view class="time-picker-row">
+              <picker class="time-picker" mode="time" :value="selectedTime || defaultStartTime"
+                      :start="businessRange.openText" :end="businessRange.closeText"
+                      @change="onTimePickerChange">
+                <view class="time-field" :class="{ placeholder: !selectedTime }">
+                  <view class="time-label">开始时间</view>
+                  <view class="time-value">{{ selectedTime || '请选择' }}</view>
+                </view>
+              </picker>
+              <view class="time-arrow">→</view>
+              <view class="time-field end" :class="{ placeholder: !endTimeText }">
+                <view class="time-label">结束时间</view>
+                <view class="time-value">{{ endTimeText || '自动计算' }}</view>
+              </view>
             </view>
-          </view>
-          <view v-else class="pkg-empty">请先选择开始时段</view>
-          <view v-if="customMinutes" class="custom-sum">
-            结束时间 {{ customEndText }} · 预计 ¥{{ customAmount }}
-          </view>
-          <view v-if="!customPkg" class="pkg-empty">门店暂未开放自定义时长</view>
-        </block>
+            <view class="time-tip">
+              {{ selectedTime ? `${selectedDate} · ${billingMode === 'custom' ? '选择时长后生成完整时段' : '选择套餐后生成完整时段'}` : '点击开始时间，选择可预约时段' }}
+            </view>
+          </template>
+        </view>
       </view>
 
-      <!-- 底部按钮 -->
+      <!-- 底部预约汇总 -->
       <view class="footer-bar">
         <view class="footer-info">
           <view v-if="footerSummary" class="footer-sum">{{ footerSummary }}</view>
-          <view v-else class="footer-hint">请选择时段与{{ billingMode === 'package' ? '套餐' : '时长' }}</view>
+          <view v-else class="footer-hint">请选择{{ billingMode === 'package' ? '套餐' : '时长' }}与开始时间</view>
+          <view v-if="canGoSeat" class="footer-price">合计 <text>¥{{ footerPrice }}</text></view>
         </view>
         <button class="footer-btn" :disabled="!canGoSeat" :class="{ disabled: !canGoSeat }"
                 @click="goSeatMap">去选座</button>
@@ -161,8 +168,8 @@ const dateList = computed(() => {
     const d = dayjs().add(i, 'day')
     list.push({
       value: d.format('YYYY-MM-DD'),
-      label: i === 0 ? '今天' : d.format('MM/DD'),
-      week: i === 0 ? '今天' : weeks[d.day()]
+      label: d.format('MM/DD'),
+      week: i === 0 ? '今天' : i === 1 ? '明天' : weeks[d.day()]
     })
   }
   return list
@@ -170,35 +177,22 @@ const dateList = computed(() => {
 const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
 const selectedTime = ref('')
 
-// FR-UC-020：黑名单时段 + 已过时段 → 置灰
-const timeSlots = computed(() => {
-  const slots = []
-  if (!detail.value) return slots
-  // 解析营业时间，如 08:00-23:00
-  const m = (detail.value.businessHours || '08:00-22:00').match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/)
+// 营业时间区间（分钟），供时间选择器限定范围
+const businessRange = computed(() => {
+  const m = (detail.value?.businessHours || '08:00-22:00').match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/)
   const open = m ? Number(m[1]) * 60 + Number(m[2]) : 8 * 60
   const close = m ? Number(m[3]) * 60 + Number(m[4]) : 22 * 60
-  const now = dayjs()
-  const isToday = selectedDate.value === now.format('YYYY-MM-DD')
-  const nowMin = now.hour() * 60 + now.minute()
+  return { open, close, openText: toText(open), closeText: toText(close) }
+})
 
-  for (let t = open; t <= close - 30; t += 30) {
-    const time = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
-    const past = isToday && t <= nowMin
-    let disabled = past
-    // 黑名单重叠判定（FR-UC-020）
-    if (blacklist.value && !blacklist.value.allDayClosed) {
-      const [h, mi] = time.split(':').map(Number)
-      const start = h * 60 + mi
-      for (const b of blacklist.value.slots || []) {
-        const bs = toMin(b.startTime)
-        const be = toMin(b.endTime)
-        if (start < be && start + 30 > bs) { disabled = true; break }
-      }
-    }
-    slots.push({ time, disabled, past })
+// 未选择时，选择器默认落在开门时间或今天下一个 5 分钟刻度
+const defaultStartTime = computed(() => {
+  const now = dayjs()
+  let min = businessRange.value.open
+  if (selectedDate.value === now.format('YYYY-MM-DD')) {
+    min = Math.max(min, Math.ceil((now.hour() * 60 + now.minute()) / 5) * 5)
   }
-  return slots
+  return min + 30 > businessRange.value.close ? businessRange.value.openText : toText(min)
 })
 
 // FR-UC-019：套餐选项卡
@@ -213,8 +207,8 @@ const selectedPackage = ref(null)
 const currentPackages = computed(() => packages.value.filter(p => p.type === activeTab.value))
 
 // 自定义时长：不买套餐，按实际选择的起止时间计费（type=5 的自定义套餐提供小时单价）
-const billingMode = ref('package')
-const customMinutes = ref(0)
+const billingMode = ref('custom')
+const customMinutes = ref(180)
 const customPkg = computed(() => packages.value.find(p => p.type === 5) || null)
 const customHourly = computed(() => customPkg.value ? Number(customPkg.value.price).toFixed(2) : '0.00')
 
@@ -229,11 +223,13 @@ const DURATION_PRESETS = [
   { minutes: 480, label: '8小时' }
 ]
 
-// 可选时长：不得超出当日闭店时间，也不得与黑名单时段交叉
+// 可选时长：未选开始时间时也可先选时长；确定时段后校验闭店与黑名单
 const durationOptions = computed(() => {
-  if (!selectedTime.value || !detail.value) return []
-  const m = (detail.value.businessHours || '08:00-22:00').match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/)
-  const close = m ? Number(m[3]) * 60 + Number(m[4]) : 22 * 60
+  if (!detail.value) return []
+  if (!selectedTime.value) {
+    return DURATION_PRESETS.map(d => ({ ...d, disabled: !!blacklist.value?.allDayClosed }))
+  }
+  const close = businessRange.value.close
   const start = toMin(selectedTime.value)
   return DURATION_PRESETS.map(d => ({
     ...d,
@@ -244,11 +240,24 @@ const durationOptions = computed(() => {
 const customEndText = computed(() => {
   if (!selectedTime.value || !customMinutes.value) return ''
   const end = toMin(selectedTime.value) + customMinutes.value
-  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`
+  return toText(end)
 })
 
 const customAmount = computed(() =>
   (Number(customHourly.value) * customMinutes.value / 60).toFixed(2))
+
+// 与后端 calcEndTime 使用相同的时长单位，实时展示预约结束时间
+const endTimeText = computed(() => {
+  if (!selectedTime.value) return ''
+  if (billingMode.value === 'custom') return customEndText.value
+  if (!selectedPackage.value) return ''
+  const start = dayjs(`${selectedDate.value} ${selectedTime.value}`)
+  const p = selectedPackage.value
+  const end = start.add(p.durationValue || 1, p.unit || 'hour')
+  return end.format('YYYY-MM-DD') === selectedDate.value
+    ? end.format('HH:mm')
+    : end.format('MM-DD HH:mm')
+})
 
 const canGoSeat = computed(() => {
   if (!selectedTime.value) return false
@@ -257,15 +266,18 @@ const canGoSeat = computed(() => {
     : !!selectedPackage.value
 })
 
+const footerPrice = computed(() => billingMode.value === 'custom'
+  ? customAmount.value
+  : Number(selectedPackage.value?.price || 0).toFixed(2))
+
 const footerSummary = computed(() => {
+  if (!selectedTime.value || !endTimeText.value) return ''
+  const date = selectedDate.value.slice(5).replace('-', '/')
   if (billingMode.value === 'custom') {
-    if (!selectedTime.value || !customMinutes.value) return ''
     const item = DURATION_PRESETS.find(d => d.minutes === customMinutes.value)
-    return `${selectedDate.value} ${selectedTime.value}~${customEndText.value} · 自定义${item ? item.label : ''}`
+    return `${date} ${selectedTime.value}~${endTimeText.value} · ${item ? item.label : ''}`
   }
-  return selectedTime.value && selectedPackage.value
-    ? `${selectedDate.value} ${selectedTime.value} 起 · ${selectedPackage.value.durationDesc}`
-    : ''
+  return `${date} ${selectedTime.value}~${endTimeText.value} · ${packageDurationText(selectedPackage.value)}`
 })
 
 function overlapsBlacklist(start, end) {
@@ -276,9 +288,16 @@ function overlapsBlacklist(start, end) {
   return false
 }
 
+function packageDurationText(p) {
+  if (!p) return ''
+  const unitLabels = { hour: '小时', day: '天', week: '周', month: '个月' }
+  return `${p.durationValue || 1}${unitLabels[p.unit || 'hour'] || ''}`
+}
+
 function switchMode(mode) {
+  if (billingMode.value === mode) return
   billingMode.value = mode
-  customMinutes.value = 0
+  customMinutes.value = mode === 'custom' ? 180 : 0
   selectedPackage.value = null
 }
 
@@ -293,17 +312,39 @@ function toMin(hhmm) {
   return h * 60 + (m || 0)
 }
 
+/** 分钟数 → HH:mm */
+function toText(min) {
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+}
+
 function selectDate(v) {
   selectedDate.value = v
   selectedTime.value = ''
-  customMinutes.value = 0
   loadBlacklist()
 }
 
-function selectTime(s) {
-  if (s.disabled) return
-  selectedTime.value = s.time
-  customMinutes.value = 0
+function onTimePickerChange(e) {
+  const [h, m] = String(e.detail.value || '').split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return
+  // 5 分钟向上取整
+  const rounded = Math.ceil((h * 60 + m) / 5) * 5
+  const now = dayjs()
+  if (selectedDate.value === now.format('YYYY-MM-DD')
+      && rounded <= now.hour() * 60 + now.minute()) {
+    uni.showToast({ title: '该时间已过，请选择更晚的时间', icon: 'none' })
+    return
+  }
+  if (rounded + 30 > businessRange.value.close) {
+    uni.showToast({ title: '闭店前需预留至少 30 分钟', icon: 'none' })
+    return
+  }
+  if (overlapsBlacklist(rounded, rounded + 30)) {
+    uni.showToast({ title: '该时段门店闭店休息，请更换时间', icon: 'none' })
+    return
+  }
+  selectedTime.value = toText(rounded)
+  const current = durationOptions.value.find(d => d.minutes === customMinutes.value)
+  if (current && current.disabled) customMinutes.value = 0
 }
 
 function switchTab(type) {
@@ -363,14 +404,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page { padding-bottom: 160rpx; background: #f5f6fa; min-height: 100vh; }
+.page { padding-bottom: 200rpx; background: #f5f6fa; min-height: 100vh; }
 .banner { height: 360rpx; }
 .banner-img { width: 100%; height: 360rpx; }
 .banner-empty { display: flex; align-items: center; justify-content: center; font-size: 100rpx; background: #4a7cf7; }
 
 .body { padding: 24rpx; }
-.card { background: #fff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; }
-.card-title { font-size: 30rpx; font-weight: 600; color: #1f2329; margin-bottom: 20rpx; }
+.card { background: #fff; border-radius: 20rpx; padding: 28rpx; margin-bottom: 24rpx; }
+.booking-card { padding-bottom: 30rpx; }
 
 .store-name { font-size: 36rpx; font-weight: 700; color: #1f2329; margin-bottom: 16rpx; display: flex; align-items: center; gap: 12rpx; }
 .store-status { font-size: 22rpx; padding: 2rpx 12rpx; border-radius: 8rpx; }
@@ -380,59 +421,67 @@ onMounted(async () => {
 .row { display: flex; align-items: center; padding: 12rpx 0; }
 .row-icon { margin-right: 14rpx; }
 .row-text { flex: 1; font-size: 26rpx; color: #4e5969; }
-.row-arrow { font-size: 24rpx; color: #4a7cf7; }
+.row-arrow { font-size: 24rpx; color: #1677ff; }
 .desc { margin-top: 12rpx; font-size: 26rpx; color: #86909c; line-height: 1.6; }
 .tags { margin-top: 16rpx; display: flex; flex-wrap: wrap; gap: 12rpx; }
 .tag { padding: 4rpx 16rpx; background: #f2f3f5; border-radius: 8rpx; font-size: 22rpx; color: #4e5969; }
 
-.date-bar { white-space: nowrap; }
-.date-item { display: inline-flex; flex-direction: column; align-items: center; width: 120rpx; padding: 16rpx 0; margin-right: 16rpx; border-radius: 14rpx; background: #f5f6fa; }
-.date-item.active { background: #4a7cf7; }
+/* 小时 / 套餐分段切换 */
+.mode-tabs { display: flex; padding: 6rpx; margin-bottom: 28rpx; border-radius: 16rpx; background: #f2f4f8; }
+.mode-tab { flex: 1; padding: 18rpx 0; text-align: center; border-radius: 12rpx; font-size: 28rpx; color: #4e5969; transition: all .2s ease; }
+.mode-tab.active { background: #fff; color: #1677ff; font-weight: 600; box-shadow: 0 2rpx 10rpx rgba(31, 35, 41, .06); }
+
+/* 横向日期 */
+.date-bar { white-space: nowrap; margin: 0 -4rpx; }
+.date-item { display: inline-flex; flex-direction: column; align-items: center; width: 104rpx; padding: 18rpx 0; margin: 0 4rpx; border-radius: 16rpx; background: #f7f8fa; transition: all .2s ease; }
+.date-item.active { background: #1677ff; box-shadow: 0 6rpx 16rpx rgba(22, 119, 255, .18); }
 .date-item.active .date-week, .date-item.active .date-day { color: #fff; }
 .date-week { font-size: 22rpx; color: #86909c; }
-.date-day { margin-top: 6rpx; font-size: 28rpx; font-weight: 600; color: #1f2329; }
+.date-day { margin-top: 8rpx; font-size: 26rpx; font-weight: 600; color: #1f2329; }
 
-.slot-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
-.slot { width: calc((100% - 64rpx) / 5); text-align: center; padding: 16rpx 0; border-radius: 12rpx; background: #f5f6fa; font-size: 26rpx; color: #1f2329; }
-.slot.active { background: #4a7cf7; color: #fff; font-weight: 600; }
-.slot.disabled { background: #e5e6eb; color: #c9cdd4; text-decoration: line-through; }
-.slot.past { background: #f2f3f5; color: #c9cdd4; }
-.slot-legend { margin-top: 20rpx; display: flex; gap: 24rpx; font-size: 22rpx; }
-.lg::before { content: ''; display: inline-block; width: 16rpx; height: 16rpx; border-radius: 4rpx; margin-right: 8rpx; vertical-align: middle; }
-.lg-ok::before { background: #4a7cf7; }
-.lg-grey::before { background: #e5e6eb; }
-.lg-past::before { background: #f2f3f5; }
-.closed-tip { padding: 40rpx 0; text-align: center; color: #ff7d00; font-size: 26rpx; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 32rpx 0 20rpx; font-size: 29rpx; font-weight: 600; color: #1f2329; }
+.section-note { font-size: 23rpx; font-weight: 400; color: #86909c; }
+.closed-tip { padding: 36rpx 0; text-align: center; color: #ff7d00; font-size: 26rpx; }
 
-.pkg-tabs { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
-.pkg-tab { flex: 1; text-align: center; padding: 14rpx 0; border-radius: 12rpx; background: #f5f6fa; font-size: 26rpx; color: #4e5969; }
-.pkg-tab.active { background: rgba(74, 124, 247, .12); color: #4a7cf7; font-weight: 600; }
-
-/* 计费方式切换 + 自定义时长 */
-.mode-tabs { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
-.mode-tab { flex: 1; text-align: center; padding: 16rpx 0; border-radius: 12rpx; border: 2rpx solid #e5e6eb; font-size: 28rpx; color: #4e5969; }
-.mode-tab.active { border-color: #4a7cf7; background: rgba(74, 124, 247, .08); color: #4a7cf7; font-weight: 600; }
-.custom-tip { font-size: 24rpx; color: #86909c; margin-bottom: 16rpx; }
+/* 时长选项：参考图的描边按钮，选中项仅用品牌蓝强调 */
 .dur-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
-.dur-item { width: calc((100% - 48rpx) / 4); text-align: center; padding: 18rpx 0; border-radius: 12rpx; background: #f5f6fa; font-size: 26rpx; color: #1f2329; }
-.dur-item.active { background: #4a7cf7; color: #fff; font-weight: 600; }
-.dur-item.disabled { background: #f2f3f5; color: #c9cdd4; text-decoration: line-through; }
-.custom-sum { margin-top: 20rpx; padding: 20rpx; border-radius: 12rpx; background: rgba(74, 124, 247, .06); font-size: 26rpx; color: #4a7cf7; }
-.pkg-item { display: flex; align-items: center; padding: 24rpx; border: 2rpx solid #f2f3f5; border-radius: 14rpx; margin-bottom: 16rpx; }
-.pkg-item.active { border-color: #4a7cf7; background: rgba(74, 124, 247, .04); }
-.pkg-info { flex: 1; }
-.pkg-name { font-size: 28rpx; font-weight: 600; color: #1f2329; }
-.pkg-desc { margin-top: 6rpx; font-size: 24rpx; color: #86909c; }
-.pkg-price { text-align: right; }
-.pkg-now { font-size: 32rpx; font-weight: 700; color: #ff7d00; }
-.pkg-origin { margin-left: 10rpx; font-size: 22rpx; color: #c9cdd4; text-decoration: line-through; }
-.pkg-empty { padding: 40rpx 0; text-align: center; color: #86909c; font-size: 26rpx; }
+.dur-item { width: calc((100% - 48rpx) / 4); box-sizing: border-box; text-align: center; padding: 20rpx 0; border: 2rpx solid #e5e8ef; border-radius: 12rpx; background: #fff; font-size: 25rpx; color: #1f2329; transition: all .2s ease; }
+.dur-item.active { border-color: #1677ff; background: #eef5ff; color: #1677ff; font-weight: 600; }
+.dur-item.disabled { border-color: #f0f1f5; background: #f5f6fa; color: #c9cdd4; text-decoration: line-through; }
 
-.footer-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, .04); }
-.footer-info { flex: 1; }
-.footer-sum { font-size: 26rpx; color: #1f2329; }
-.footer-hint { font-size: 26rpx; color: #86909c; }
-.footer-btn { width: 260rpx; height: 88rpx; line-height: 88rpx; background: #4a7cf7; color: #fff; font-size: 30rpx; border-radius: 44rpx; }
+.pkg-tabs { display: flex; gap: 12rpx; margin-bottom: 20rpx; }
+.pkg-tab { flex: 1; text-align: center; padding: 14rpx 0; border-radius: 12rpx; background: #f7f8fa; font-size: 25rpx; color: #4e5969; }
+.pkg-tab.active { background: #eef5ff; color: #1677ff; font-weight: 600; }
+.pkg-item { display: flex; align-items: center; padding: 22rpx; border: 2rpx solid #edf0f5; border-radius: 14rpx; margin-bottom: 16rpx; transition: all .2s ease; }
+.pkg-item.active { border-color: #1677ff; background: #f5f9ff; }
+.pkg-info { flex: 1; min-width: 0; }
+.pkg-name { font-size: 28rpx; font-weight: 600; color: #1f2329; }
+.pkg-desc { margin-top: 6rpx; font-size: 23rpx; color: #86909c; }
+.pkg-price { text-align: right; padding-left: 16rpx; }
+.pkg-now { font-size: 32rpx; font-weight: 700; color: #1677ff; }
+.pkg-origin { margin-left: 10rpx; font-size: 22rpx; color: #c9cdd4; text-decoration: line-through; }
+.pkg-empty { padding: 36rpx 0; text-align: center; color: #86909c; font-size: 26rpx; }
+
+/* 起止时间：开始时间可选，结束时间由时长或套餐自动生成 */
+.time-section { margin-top: 30rpx; padding-top: 2rpx; border-top: 2rpx solid #f3f4f6; }
+.time-picker-row { display: flex; align-items: center; }
+.time-picker { flex: 1; min-width: 0; }
+.time-field { height: 132rpx; box-sizing: border-box; padding: 20rpx 22rpx; border: 2rpx solid #e5e8ef; border-radius: 16rpx; background: #f8f9fb; }
+.time-field.end { flex: 1; min-width: 0; }
+.time-label { font-size: 22rpx; color: #86909c; }
+.time-value { margin-top: 10rpx; font-size: 34rpx; line-height: 1.2; font-weight: 600; color: #1f2329; }
+.time-field.placeholder .time-value { font-size: 27rpx; font-weight: 400; color: #a9b0bc; }
+.time-arrow { width: 56rpx; flex-shrink: 0; text-align: center; font-size: 30rpx; color: #a9b0bc; }
+.time-tip { margin-top: 16rpx; font-size: 22rpx; line-height: 1.5; color: #86909c; }
+
+.footer-bar { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; display: flex; align-items: center; padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -6rpx 24rpx rgba(31, 35, 41, .06); }
+.footer-info { flex: 1; min-width: 0; padding-right: 20rpx; }
+.footer-sum { font-size: 23rpx; line-height: 1.4; color: #4e5969; }
+.footer-hint { font-size: 25rpx; color: #86909c; }
+.footer-price { margin-top: 4rpx; font-size: 22rpx; color: #4e5969; }
+.footer-price text { margin-left: 6rpx; font-size: 34rpx; font-weight: 700; color: #1677ff; }
+.footer-btn { width: 220rpx; height: 84rpx; line-height: 84rpx; margin: 0; padding: 0; background: #1677ff; color: #fff; font-size: 29rpx; border-radius: 42rpx; }
+.footer-btn::after { border: none; }
 .footer-btn.disabled { background: #c9cdd4; }
 
 .loading { padding: 120rpx 0; text-align: center; color: #86909c; }
